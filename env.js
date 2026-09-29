@@ -1,0 +1,2 @@
+// Cesium ion token. Keep this file out of public commits, or restrict the token to your site's URL in the Cesium ion dashboard.
+window.CESIUM_ION_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImwybFZ3OEtWMUZySTQyLWwiLCJqdGkiOiI3NGVhMWEzOC1jNmUyLTQxYzUtYmZlYS0xY2IyOGE0Mjk1MzMiLCJpZCI6Mjk0NjEzLCJzdWIiOiJwYXJ1bG5pdGgiLCJpc3MiOiJodHRwczovL2FwaS5jZXNpdW0uY29tIiwiYXVkIjoia2lkc193b3JsZCIsImlhdCI6MTc5MDY3OTA0NX0.dXLHp_-JqBPxP8wwM_ADobZbaB_2705MyL-j1zB_DWM';
