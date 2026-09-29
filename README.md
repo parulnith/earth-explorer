@@ -44,6 +44,8 @@ Add `env.js` to `.gitignore` so your token isn't committed. If `env.js` is missi
 
 If you host the game publicly (for example on GitHub Pages), the token has to ship with the page, so anyone can see it. Create a separate token for the public site and set its **Allowed URLs** in the Cesium ion dashboard to your site's address.
 
+> 🔒 **About the token on the live site:** the Cesium token used by [the hosted game](https://parulnith.github.io/earth-explorer/) is **restricted to this site's address** in the Cesium ion dashboard, so it doesn't work anywhere else. It is not stored in this repository: a GitHub Action adds it from a repository secret when the site is published (see `.github/workflows/pages.yml`). To host your own copy, use your own token.
+
 ### 3. Run it
 
 Voice input needs the page to be served, not opened as a file:

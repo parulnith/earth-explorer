@@ -1,0 +1,34 @@
+# Publishes the game to GitHub Pages. The Cesium token is kept out of the repo:
+# it comes from the CESIUM_ION_TOKEN repository secret and is written to env.js at deploy time.
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site
+        env:
+          CESIUM_ION_TOKEN: ${{ secrets.CESIUM_ION_TOKEN }}
+        run: |
+          mkdir _site
+          cp earth_explorer.html _site/
+          cp earth_explorer.html _site/index.html
+          printf "window.CESIUM_ION_TOKEN = '%s';\n" "$CESIUM_ION_TOKEN" > _site/env.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+      - id: deployment
+        uses: actions/deploy-pages@v4
