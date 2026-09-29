@@ -12,158 +12,282 @@
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 <style>
 :root{
-  --paper:#FFF8EC; --paper-2:#F6EBD6; --ink:#1D2B4F; --ink-2:#5A6582; --red:#E4572E; --red-2:#B93D1B;
-  --sky:#7EC8E3; --gold:#F2B33D; --green:#2E8B57; --line:#E5D6BA; --shadow:0 10px 30px rgba(10,20,40,.28);
+  --glass:rgba(14,22,46,.66); --glass-2:rgba(255,255,255,.08); --glass-3:rgba(255,255,255,.16); --edge:rgba(255,255,255,.14);
+  --text:#fff; --text-2:rgba(228,236,255,.72); --ink:#14203F;
+  --coral:#FF5F6D; --orange:#FF9A44; --sky:#4CC9F0; --gold:#FFD166; --green:#3DDC97;
+  --grad:linear-gradient(135deg,var(--orange),var(--coral)); --shadow:0 10px 30px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
-html,body{margin:0; height:100%; overflow:hidden; background:#02040A; font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink)}
+html,body{margin:0; height:100%; overflow:hidden; background:#02040A; font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--text)}
 #globe{position:fixed; inset:0}
-.cesium-viewer-bottom{bottom:6px !important; left:auto !important; right:10px !important; max-width:60vw}
-button{font:inherit; cursor:pointer}
-button:disabled{opacity:.5; cursor:default}
+.cesium-viewer-bottom{bottom:6px !important; left:auto !important; right:10px !important; max-width:40vw; opacity:.7}
+button{font:inherit; cursor:pointer; color:inherit}
+button:disabled{opacity:.45; cursor:default}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
 .hidden{display:none !important}
+.glass{background:var(--glass); -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%); border:1px solid var(--edge); box-shadow:var(--shadow)}
 
-.topbar{position:fixed; top:calc(12px + env(safe-area-inset-top,0px)); left:12px; right:12px; display:flex; gap:10px; align-items:center; pointer-events:none; z-index:21}
-.brand{pointer-events:auto; display:flex; align-items:center; gap:10px; background:var(--paper); border-radius:16px; padding:8px 14px; box-shadow:var(--shadow)}
-.brand h1{font:800 1.35rem/1 "Baloo 2",system-ui,sans-serif; margin:0}
-.here{pointer-events:auto; display:flex; align-items:center; gap:8px; background:var(--paper); border-radius:16px; padding:8px 12px; box-shadow:var(--shadow); font-weight:800}
-.here select{font:inherit; font-weight:800; color:var(--ink); background:var(--paper-2); border:0; border-radius:10px; padding:4px 8px}
+/* top bar */
+.topbar{position:fixed; top:calc(12px + env(safe-area-inset-top,0px)); left:12px; right:12px; display:flex; gap:8px; align-items:center; pointer-events:none; z-index:21}
+.chip{pointer-events:auto; display:flex; align-items:center; gap:8px; border-radius:999px; padding:6px 14px 6px 8px; font-weight:800; font-size:.9rem; min-height:42px}
+.brand .logo{width:30px; height:30px; border-radius:50%; background:var(--grad); display:grid; place-items:center; font-size:1rem}
+.brand h1{font:800 1.15rem/1 "Baloo 2",system-ui,sans-serif; margin:0}
+.here{padding-left:12px}
+.here select{font:inherit; font-weight:800; color:var(--text); background:var(--glass-3); border:0; border-radius:999px; padding:4px 10px}
+.here select option{color:var(--ink)}
 .spacer{flex:1}
-.iconbtn{pointer-events:auto; background:var(--paper); border:0; border-radius:14px; padding:9px 13px; box-shadow:var(--shadow); font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px}
-.iconbtn[aria-pressed="false"]{opacity:.65}
-@media (max-width:760px){ .brand h1{font-size:1.1rem} .iconbtn .lbl{display:none} .here{font-size:.85rem} }
+.roundbtn{pointer-events:auto; width:42px; height:42px; border-radius:50%; font-size:1.1rem; display:grid; place-items:center; padding:0}
+@media (max-width:620px){ .brand h1{display:none} .brand{padding-right:8px} .here{font-size:.8rem} }
 
-.picker{position:fixed; right:12px; top:calc(76px + env(safe-area-inset-top,0px)); bottom:calc(92px + env(safe-area-inset-bottom,0px)); width:min(390px, calc(100vw - 24px)); background:var(--paper); border-radius:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; z-index:9}
-.picker header{padding:16px 18px 10px; border-bottom:2px dashed var(--line)}
-.picker h2{font:800 1.6rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0 0 10px}
-.search{display:flex; gap:8px}
-.search input{flex:1; min-width:0; font:inherit; font-size:1.05rem; font-weight:700; padding:12px 14px; border-radius:14px; border:2px solid var(--line); background:#fff; color:var(--ink)}
-.mic{border:0; border-radius:14px; background:var(--red); color:#fff; font-size:1.3rem; width:54px; flex:none}
+/* shared panel bits */
+.panel{position:fixed; z-index:9; border-radius:22px; display:flex; flex-direction:column; overflow:hidden}
+.phead{display:flex; align-items:center; gap:10px; padding:12px 12px 10px 16px}
+.phead h2{font:800 1.2rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0; flex:1}
+.minbtn{flex:none; width:30px; height:30px; border-radius:50%; border:0; background:var(--glass-2); font-weight:800; font-size:1.1rem; line-height:1; padding:0}
+.minbtn:hover{background:var(--glass-3)}
+.pbody{display:flex; flex-direction:column; min-height:0; flex:1; padding:0 12px 12px}
+.panel.min .pbody{display:none}
+.pill{border:0; border-radius:12px; padding:8px 12px; font-weight:800; background:var(--glass-2); font-size:.9rem}
+.pill:hover{background:var(--glass-3)}
+.pill.primary{background:var(--grad); color:#fff; box-shadow:0 4px 14px rgba(255,95,109,.35)}
+
+/* destination picker: compact list on the right */
+.picker{right:12px; top:calc(66px + env(safe-area-inset-top,0px)); width:min(300px, calc(100vw - 24px)); max-height:calc(100vh - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.search{display:flex; gap:6px}
+.search input{flex:1; min-width:0; font:inherit; font-size:.95rem; font-weight:700; padding:9px 12px; border-radius:12px; border:1px solid var(--edge); background:var(--glass-2); color:var(--text)}
+.search input::placeholder{color:var(--text-2)}
+.mic{border:0; border-radius:12px; background:var(--grad); color:#fff; font-size:1.1rem; width:42px; flex:none}
 .mic.listening{animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(228,87,46,.6)}50%{box-shadow:0 0 0 10px rgba(228,87,46,0)}}
-.hint{font-size:.88rem; color:var(--ink-2); margin:8px 2px 0; min-height:1.2em}
-.grid{overflow:auto; padding:12px 14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px}
-.card{position:relative; text-align:left; background:#fff; border:2px solid var(--line); border-radius:16px; padding:10px 12px; color:var(--ink); transition:transform .12s}
-.card:hover{transform:translateY(-2px); border-color:var(--sky)}
-.card .emo{font-size:1.9rem; line-height:1}
-.card .nm{font:800 1.02rem/1.15 "Baloo 2",system-ui,sans-serif; margin-top:4px}
-.card .where{font-size:.8rem; color:var(--ink-2); font-weight:700}
-.card .km{font-size:.8rem; font-weight:800; color:var(--red-2); margin-top:4px}
-.card.visited::after{content:"VISITED"; position:absolute; top:8px; right:8px; font:800 .62rem/1 "Nunito",sans-serif; letter-spacing:.06em; color:var(--green); border:2px solid var(--green); border-radius:6px; padding:3px 5px; transform:rotate(8deg)}
-.card.here-now{opacity:.5; pointer-events:none}
-@media (max-width:760px){ .picker{top:auto; height:52vh; bottom:calc(84px + env(safe-area-inset-bottom,0px)); right:8px; width:calc(100vw - 16px)} }
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,95,109,.6)}50%{box-shadow:0 0 0 9px rgba(255,95,109,0)}}
+.hint{font-size:.78rem; color:var(--text-2); margin:6px 2px 8px; min-height:1.1em; font-weight:700}
+.grid{overflow:auto; display:flex; flex-direction:column; gap:6px; min-height:0; flex:1; margin:0 -4px; padding:0 4px 2px; scrollbar-width:thin}
+.card{display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:var(--glass-2); border:1px solid transparent; border-radius:14px; padding:7px 10px 7px 7px; transition:background .12s, transform .12s}
+.card:hover{background:var(--glass-3); border-color:rgba(76,201,240,.5); transform:translateX(-2px)}
+.card .emo{position:relative; flex:none; width:38px; height:38px; border-radius:12px; background:var(--glass-3); display:grid; place-items:center; font-size:1.35rem}
+.card .txt{flex:1; min-width:0}
+.card .nm{font:800 .98rem/1.15 "Baloo 2",system-ui,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card .where{font-size:.74rem; color:var(--text-2); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.card .km{flex:none; font-size:.74rem; font-weight:800; color:var(--gold)}
+.card.visited .emo::after{content:"✓"; position:absolute; right:-4px; top:-4px; width:17px; height:17px; border-radius:50%; background:var(--green); color:#0B2A1C; font:900 .7rem/17px "Nunito",sans-serif; text-align:center}
+.card.here-now{opacity:.45; pointer-events:none}
 
-.ticket{position:fixed; top:calc(76px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); background:var(--paper); border-radius:18px; box-shadow:var(--shadow); padding:12px 20px 14px; width:min(500px, calc(100vw - 24px)); z-index:9}
-.route{display:flex; align-items:center; gap:14px; font:800 1.2rem/1.1 "Baloo 2",system-ui,sans-serif}
-.route .arrow{flex:1; height:2px; background:repeating-linear-gradient(90deg,var(--ink) 0 8px,transparent 8px 14px); position:relative}
-.route .arrow span{position:absolute; top:-15px; font-size:1.3rem; transform:translateX(-50%); left:var(--p,0%)}
-.flightinfo{display:flex; justify-content:space-between; gap:10px; margin-top:8px; font-weight:800; color:var(--ink-2); font-size:.92rem}
-.captain{margin-top:8px; font-weight:800; color:var(--ink); font-size:.95rem; min-height:1.3em}
+/* flight ticket: small card, bottom left */
+.ticket{left:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); width:min(290px, calc(100vw - 24px)); padding:12px 14px}
+.route{display:flex; align-items:center; gap:8px; font:800 1rem/1.1 "Baloo 2",system-ui,sans-serif}
+.route span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.route .arr{flex:none; color:var(--gold)}
+.track{position:relative; height:6px; border-radius:6px; background:var(--glass-3); margin:12px 0 8px}
+.track i{position:absolute; left:0; top:0; bottom:0; width:var(--p,0%); border-radius:6px; background:var(--grad)}
+.track span{position:absolute; top:50%; left:var(--p,0%); transform:translate(-50%,-55%); font-size:1.05rem}
+.flightinfo{display:flex; justify-content:space-between; gap:8px; font-weight:800; font-size:.8rem; color:var(--text-2)}
+.small{font-size:.74rem; color:var(--text-2); font-weight:700; margin-top:2px}
+.captain{margin-top:8px; font-weight:700; font-size:.84rem; line-height:1.3; min-height:1.3em}
 
-.explore{position:fixed; left:12px; bottom:calc(92px + env(safe-area-inset-bottom,0px)); width:min(420px, calc(100vw - 24px)); background:var(--paper); border-radius:22px; box-shadow:var(--shadow); padding:16px 18px 18px; z-index:9; max-height:calc(100vh - 190px); overflow:auto}
-.explore .top{display:flex; gap:12px; align-items:center}
-.explore .emo{font-size:2.6rem; line-height:1}
-.explore h2{font:800 1.6rem/1.05 "Baloo 2",system-ui,sans-serif; margin:0}
-.explore .where{color:var(--ink-2); font-weight:800}
-.views{display:flex; gap:6px; margin-top:12px; flex-wrap:wrap}
-.fact{background:#fff; border:2px solid var(--line); border-radius:14px; padding:12px 14px; margin:12px 0 8px; font-size:1.05rem; font-weight:700; min-height:4.2em}
-.factnav{display:flex; gap:8px; align-items:center}
-.factnav .n{color:var(--ink-2); font-weight:800; font-size:.9rem; margin-right:auto}
-.pill{border:0; border-radius:12px; padding:9px 14px; font-weight:800; background:var(--paper-2); color:var(--ink)}
-.pill.primary{background:var(--red); color:#fff}
-.pill[aria-pressed="true"]{background:var(--ink); color:#fff}
-.quiz{margin-top:14px; border-top:2px dashed var(--line); padding-top:12px}
-.quiz .q{font:800 1.1rem/1.2 "Baloo 2",system-ui,sans-serif; margin-bottom:8px}
-.quiz .opts{display:grid; gap:8px}
-.quiz .opts button{text-align:left; border:2px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; font-weight:800; color:var(--ink)}
-.quiz .opts button.right{border-color:var(--green); background:#E4F4EA}
-.quiz .opts button.wrong{border-color:var(--red); background:#FBE6DF}
-.quiz .msg{margin-top:8px; font-weight:800; min-height:1.3em}
-.howto{font-size:.85rem; color:var(--ink-2); margin-top:12px; font-weight:700}
-.nextrow{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
-@media (max-width:760px){ .explore{max-height:50vh} }
+/* explore: slim panel on the left */
+.explore{left:12px; top:calc(66px + env(safe-area-inset-top,0px)); width:min(310px, calc(100vw - 24px)); max-height:calc(100vh - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+.explore .phead{padding-left:12px}
+.explore .emo{flex:none; width:44px; height:44px; border-radius:14px; background:var(--glass-3); display:grid; place-items:center; font-size:1.6rem}
+.explore .ttl{flex:1; min-width:0}
+.explore h2{font:800 1.15rem/1.05 "Baloo 2",system-ui,sans-serif; margin:0}
+.explore .where{color:var(--text-2); font-weight:700; font-size:.8rem}
+.explore .pbody{overflow:auto; scrollbar-width:thin}
+.views{display:grid; grid-template-columns:repeat(3,1fr); gap:6px}
+.vbtn{border:1px solid transparent; border-radius:12px; background:var(--glass-2); padding:6px 4px; display:flex; flex-direction:column; align-items:center; gap:1px; font-size:1.1rem}
+.vbtn span{font-size:.7rem; font-weight:800; color:var(--text-2)}
+.vbtn:hover{background:var(--glass-3)}
+.vbtn[aria-pressed="true"]{border-color:var(--sky); background:rgba(76,201,240,.18)}
+.vbtn[aria-pressed="true"] span{color:var(--text)}
+.tabs{display:flex; gap:4px; background:var(--glass-2); border-radius:12px; padding:3px; margin:10px 0}
+.tab{flex:1; border:0; border-radius:9px; background:transparent; padding:6px; font-weight:800; font-size:.85rem; color:var(--text-2)}
+.tab[aria-selected="true"]{background:#fff; color:var(--ink)}
+.fact{background:var(--glass-2); border-radius:14px; padding:12px; font-size:.95rem; font-weight:700; line-height:1.4; min-height:5.6em}
+.factnav{display:flex; gap:6px; align-items:center; margin-top:8px}
+.dots{display:flex; gap:5px; margin-right:auto}
+.dots i{width:7px; height:7px; border-radius:50%; background:var(--glass-3)}
+.dots i.on{background:var(--gold)}
+.quiz .q{font:800 1rem/1.25 "Baloo 2",system-ui,sans-serif; margin-bottom:8px}
+.quiz .opts{display:grid; gap:6px}
+.quiz .opts button{text-align:left; border:1px solid var(--edge); background:var(--glass-2); border-radius:12px; padding:9px 12px; font-weight:800; font-size:.9rem}
+.quiz .opts button:hover:not(:disabled){background:var(--glass-3)}
+.quiz .opts button.right{border-color:var(--green); background:rgba(61,220,151,.22)}
+.quiz .opts button.wrong{border-color:var(--coral); background:rgba(255,95,109,.2)}
+.quiz .msg{margin-top:8px; font-weight:800; font-size:.9rem; min-height:1.3em}
+.howto{font-size:.72rem; color:var(--text-2); margin:10px 2px 0; font-weight:700}
+.nextrow{display:flex; gap:6px; margin-top:10px}
+.nextrow .pill{flex:1}
 
-.passport{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(12px + env(safe-area-inset-bottom,0px)); background:var(--ink); color:#fff; border-radius:18px; box-shadow:var(--shadow); padding:8px 14px; display:flex; align-items:center; gap:12px; z-index:9; max-width:calc(100vw - 24px)}
-.passport .lbl{font:800 1rem/1.1 "Baloo 2",system-ui,sans-serif; white-space:nowrap}
-.passport .lbl small{display:block; font:700 .75rem "Nunito",sans-serif; opacity:.8}
-.stamps{display:flex; gap:4px; overflow:auto}
-.stamp{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:1.05rem; border:2px dashed rgba(255,255,255,.35); filter:grayscale(1); opacity:.45; flex:none}
-.stamp.got{filter:none; opacity:1; border-style:solid; border-color:var(--gold); background:rgba(242,179,61,.18)}
+/* passport: small strip, bottom centre */
+.passport{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(10px + env(safe-area-inset-bottom,0px)); border-radius:999px; padding:5px 8px 5px 14px; display:flex; align-items:center; gap:10px; z-index:9; max-width:calc(100vw - 24px)}
+.passport .lbl{font:800 .85rem/1.05 "Baloo 2",system-ui,sans-serif; white-space:nowrap}
+.passport .lbl small{display:block; font:700 .66rem "Nunito",sans-serif; color:var(--text-2)}
+.stamps{display:flex; gap:3px; overflow:auto; scrollbar-width:none}
+.stamp{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:.85rem; border:1.5px dashed rgba(255,255,255,.3); filter:grayscale(1); opacity:.4; flex:none}
+.stamp.got{filter:none; opacity:1; border-style:solid; border-color:var(--gold); background:rgba(255,209,102,.2)}
 .stamp.pop{animation:pop .6s ease}
-@keyframes pop{0%{transform:scale(.4) rotate(-20deg)}70%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(.4) rotate(-20deg)}70%{transform:scale(1.35) rotate(8deg)}100%{transform:scale(1)}}
 
-.banner{position:fixed; left:50%; top:36%; transform:translate(-50%,-50%); background:var(--paper); border-radius:24px; box-shadow:var(--shadow); padding:18px 30px; text-align:center; z-index:12; pointer-events:none; animation:bannerIn .5s ease}
-.banner b{display:block; font:800 clamp(1.6rem,4vw,2.6rem)/1.05 "Baloo 2",system-ui,sans-serif}
-.banner span{font-weight:800; color:var(--ink-2)}
-@keyframes bannerIn{from{opacity:0; transform:translate(-50%,-40%)}to{opacity:1; transform:translate(-50%,-50%)}}
+.passport{cursor:pointer; border-color:rgba(255,209,102,.35)}
+.passport:hover{border-color:var(--gold)}
+.passport .open{flex:none; border:0; border-radius:999px; background:var(--gold); color:var(--ink); font-weight:800; font-size:.72rem; padding:5px 10px}
 
-.overlay{position:fixed; inset:0; display:grid; place-items:center; z-index:20; padding:16px; background:radial-gradient(ellipse at center, rgba(8,16,36,.55), rgba(2,4,10,.92))}
-.start{text-align:center; color:#fff; max-width:560px}
+/* passport book: a small booklet whose pages turn */
+#bookScreen{z-index:30; background:rgba(2,4,10,.88); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px)}
+.bookwrap{display:flex; flex-direction:column; align-items:center; gap:12px}
+.booklet{position:relative; height:min(560px, calc(100vh - 120px)); aspect-ratio:.7; max-width:calc(100vw - 32px); perspective:1800px}
+.leaf{position:absolute; inset:0; transform-origin:left center; transition:transform .7s cubic-bezier(.3,.1,.2,1), box-shadow .7s; transform-style:preserve-3d}
+.leaf.turned{transform:rotateY(-178deg)}
+.face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:6px 16px 16px 6px; overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.face.back{transform:rotateY(180deg); background:#EFE6D2; border-radius:16px 6px 6px 16px; display:grid; place-items:center}
+.face.back::after{content:"🌍"; font-size:6rem; opacity:.1; filter:grayscale(1)}
+.page{height:100%; padding:22px 20px 18px; color:var(--ink); background:#FBF6EA repeating-linear-gradient(45deg, rgba(15,42,92,.03) 0 6px, transparent 6px 12px); box-shadow:inset 14px 0 18px -14px rgba(0,0,0,.35); display:flex; flex-direction:column}
+.page .pno{margin-top:auto; text-align:center; font:800 .7rem "Nunito",sans-serif; color:rgba(15,42,92,.4)}
+.cover{height:100%; background:radial-gradient(circle at 30% 20%, #1D4E9E, #0B2250 70%); color:#F4CE6A; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:10px; padding:24px; box-shadow:inset 10px 0 16px -8px rgba(0,0,0,.5)}
+.cover .t1{font:800 .85rem "Nunito",sans-serif; letter-spacing:.35em}
+.cover .emblem{width:110px; height:110px; border-radius:50%; border:3px solid #F4CE6A; display:grid; place-items:center; font-size:3.6rem; margin:10px 0; box-shadow:0 0 0 6px rgba(244,206,106,.18)}
+.cover .t2{font:800 2.1rem/1 "Baloo 2",system-ui,sans-serif; letter-spacing:.08em}
+.cover .t3{font:800 .9rem "Nunito",sans-serif; letter-spacing:.25em; opacity:.85}
+.cover .nm{margin-top:18px; font:800 1.2rem "Baloo 2",system-ui,sans-serif; color:#fff; min-height:1.4em}
+.cover .tap{margin-top:8px; font-weight:800; font-size:.8rem; color:rgba(255,255,255,.65)}
+.ptitle{font:800 .68rem/1 "Nunito",sans-serif; letter-spacing:.18em; color:#8A6A1F; text-transform:uppercase}
+.page h3{font:800 1.45rem/1.1 "Baloo 2",system-ui,sans-serif; margin:4px 0 14px; color:#0F2A5C}
+.photo{width:96px; height:116px; border-radius:10px; background:linear-gradient(160deg,#DCEBFF,#BCD6FA); display:grid; place-items:center; font-size:3.4rem; border:2px solid rgba(15,42,92,.2); margin-bottom:12px}
+.fields{display:grid; gap:10px}
+.field label{display:block; font:800 .62rem/1 "Nunito",sans-serif; letter-spacing:.12em; color:#6B7896; text-transform:uppercase; margin-bottom:3px}
+.field input,.field div{width:100%; font:800 1.05rem "Baloo 2",system-ui,sans-serif; color:#0F2A5C; background:transparent; border:0; border-bottom:2px solid rgba(15,42,92,.2); padding:2px 0; border-radius:0}
+.field input:focus{outline:0; border-bottom-color:var(--coral)}
+.mrz{margin-top:14px; font:700 .66rem/1.4 ui-monospace,Menlo,monospace; color:rgba(15,42,92,.45); letter-spacing:.1em; word-break:break-all}
+.bstamps{display:grid; grid-template-columns:1fr 1fr; gap:12px 10px; padding:0 4px}
+.bstamp{aspect-ratio:1; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:8px; border:3px double var(--c,#C23B3B); color:var(--c,#C23B3B); transform:rotate(var(--r,0deg)); font:800 .6rem/1.1 "Nunito",sans-serif; text-transform:uppercase; letter-spacing:.03em; background:rgba(255,255,255,.45)}
+.bstamp .e{font-size:1.9rem; line-height:1.1}
+.bstamp .n{font:800 .78rem/1.05 "Baloo 2",system-ui,sans-serif; margin-top:2px}
+.bstamp.empty{border:2px dashed rgba(15,42,92,.2); color:rgba(15,42,92,.35); transform:none; background:none}
+.bstamp.empty .e{filter:grayscale(1); opacity:.35}
+.why{flex:1; display:flex; flex-direction:column}
+.why p{margin:0 0 10px; font-weight:700; line-height:1.45; font-size:.95rem; color:#3A2A18}
+.why ul{margin:0 0 12px; padding:0; list-style:none; display:grid; gap:6px; font-weight:800; font-size:.92rem; color:#0F2A5C}
+.why li{background:rgba(255,209,102,.3); border-radius:10px; padding:6px 10px}
+.why .pill{align-self:flex-start; background:#0F2A5C; color:#fff}
+.booknav{display:flex; align-items:center; gap:12px; color:#fff; font-weight:800}
+.booknav .pill{min-width:110px}
+.booknav #bPage{min-width:90px; text-align:center; font-size:.9rem; color:var(--text-2)}
+.book-close{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); right:14px; width:42px; height:42px; border-radius:50%; font-size:1.1rem; padding:0; z-index:31}
+.booklet{transition:transform .7s cubic-bezier(.3,.1,.2,1)}
+@media (min-width:820px){ .booklet.open{transform:translateX(50%)} } /* centre the open two-page spread */
+@media (prefers-reduced-motion: reduce){ .leaf,.booklet{transition:none} }
+
+/* messages */
+.banner{position:fixed; left:50%; top:calc(66px + env(safe-area-inset-top,0px)); transform:translateX(-50%); border-radius:18px; padding:10px 22px; text-align:center; z-index:12; pointer-events:none; animation:bannerIn .4s ease; max-width:calc(100vw - 24px)}
+.banner b{display:block; font:800 clamp(1.15rem,2.6vw,1.6rem)/1.1 "Baloo 2",system-ui,sans-serif}
+.banner span{font-weight:700; font-size:.85rem; color:var(--text-2)}
+@keyframes bannerIn{from{opacity:0; transform:translate(-50%,-8px)}to{opacity:1; transform:translate(-50%,0)}}
+.loader{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(60px + env(safe-area-inset-bottom,0px)); border-radius:999px; padding:6px 14px; font-weight:800; font-size:.8rem; z-index:9; display:flex; align-items:center; gap:8px; pointer-events:none}
+.loader::before{content:""; width:12px; height:12px; border-radius:50%; border:2px solid var(--glass-3); border-top-color:var(--sky); animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* start + setup screens */
+.overlay{position:fixed; inset:0; display:grid; place-items:center; z-index:20; padding:16px; background:radial-gradient(ellipse at center, rgba(8,16,36,.45), rgba(2,4,10,.9))}
+.start{text-align:center; max-width:560px}
 .start .big{font:800 clamp(2.4rem,7vw,4.2rem)/1 "Baloo 2",system-ui,sans-serif; margin:0}
-.start p{font-weight:700; opacity:.85; font-size:1.1rem}
-.start button{margin-top:10px; font:800 1.3rem "Baloo 2",system-ui,sans-serif; background:var(--gold); color:var(--ink); border:0; border-radius:999px; padding:14px 34px; box-shadow:0 6px 0 #B98420}
-.start .status{margin-top:14px; font-weight:700; opacity:.8; min-height:1.3em}
-.setup{background:var(--paper); border-radius:22px; box-shadow:var(--shadow); padding:22px 24px; width:min(520px,100%)}
-.setup h2{font:800 1.7rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0 0 8px}
-.setup input{width:100%; font:inherit; padding:12px; border-radius:12px; border:2px solid var(--line); margin:8px 0 10px}
-.setup .err{color:var(--red-2); font-weight:800; min-height:1.2em}
+.start p{font-weight:700; color:var(--text-2); font-size:1.1rem}
+.start button{margin-top:10px; font:800 1.3rem "Baloo 2",system-ui,sans-serif; background:var(--grad); color:#fff; border:0; border-radius:999px; padding:14px 34px; box-shadow:0 8px 24px rgba(255,95,109,.45)}
+.start .status{margin-top:14px; font-weight:700; color:var(--text-2); min-height:1.3em}
+.setup{border-radius:22px; padding:22px 24px; width:min(520px,100%)}
+.setup h2{font:800 1.6rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0 0 8px}
+.setup a{color:var(--sky)}
+.setup input{width:100%; font:inherit; padding:12px; border-radius:12px; border:1px solid var(--edge); background:var(--glass-2); color:var(--text); margin:8px 0 10px}
+.setup .err{color:var(--coral); font-weight:800; min-height:1.2em}
 .fade{position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:11; transition:opacity .6s}
 .fade.on{opacity:.85}
-@media (prefers-reduced-motion: reduce){ .banner,.stamp.pop,.mic.listening{animation:none} }
+
+/* phones: panels become short bottom sheets */
+@media (max-width:760px){
+  .picker,.explore{top:auto; left:8px; right:8px; width:auto; bottom:calc(58px + env(safe-area-inset-bottom,0px)); max-height:44vh}
+  .ticket{left:8px; right:8px; width:auto}
+}
+@media (prefers-reduced-motion: reduce){ .banner,.stamp.pop,.mic.listening,.loader::before{animation:none} }
 </style>
 </head>
 <body>
 <div id="globe"></div>
 
 <div class="topbar">
-  <div class="brand"><span aria-hidden="true">✈️</span><h1>Earth Explorer</h1></div>
-  <div class="here" id="here">📍 <span id="hereText">Starting from</span>
+  <div class="chip glass brand"><span class="logo" aria-hidden="true">✈️</span><h1>Earth Explorer</h1></div>
+  <div class="chip glass here" id="here"><span id="hereIco" aria-hidden="true">📍</span> <span id="hereText">Starting from</span>
     <select id="homeSel" aria-label="Choose your starting city"></select>
   </div>
   <div class="spacer"></div>
-  <button class="iconbtn" id="soundBtn" type="button" aria-pressed="true" title="Sound and voice on or off">🔊 <span class="lbl">Sound</span></button>
-  <button class="iconbtn" id="homeBtn" type="button" title="Fly home">🏠 <span class="lbl">Fly home</span></button>
+  <button class="roundbtn glass" id="soundBtn" type="button" aria-pressed="true" title="Sound and voice on or off" aria-label="Sound and voice on or off">🔊</button>
+  <button class="roundbtn glass" id="homeBtn" type="button" title="Fly home" aria-label="Fly home">🏠</button>
 </div>
 
-<section class="picker hidden" id="picker" aria-label="Choose a destination">
-  <header>
-    <h2>Where do you want to go?</h2>
+<section class="panel glass picker hidden" id="picker" aria-label="Choose a destination">
+  <header class="phead">
+    <h2>Where to next?</h2>
+    <button class="minbtn" type="button" data-min="picker" aria-expanded="true" aria-label="Hide or show the list">–</button>
+  </header>
+  <div class="pbody">
     <div class="search">
-      <input id="search" type="text" placeholder="Type a place, like Eiffel Tower" autocomplete="off" aria-label="Type a place">
+      <input id="search" type="text" placeholder="Type a place…" autocomplete="off" aria-label="Type a place">
       <button class="mic" id="mic" type="button" title="Say where you want to go" aria-label="Say where you want to go">🎤</button>
     </div>
-    <p class="hint" id="hint">Tap a wonder, type its name, or press 🎤 and say it.</p>
-  </header>
-  <div class="grid" id="grid"></div>
+    <p class="hint" id="hint">Tap a wonder, type it, or press 🎤 and say it.</p>
+    <div class="grid" id="grid"></div>
+  </div>
 </section>
 
-<section class="ticket hidden" id="ticket" aria-live="polite">
-  <div class="route"><span id="tFrom"></span><div class="arrow" id="tArrow"><span>✈️</span></div><span id="tTo"></span></div>
-  <div class="flightinfo"><span id="tKm"></span><span id="tAlt"></span><span id="tSpeed"></span></div>
+<section class="panel glass ticket hidden" id="ticket" aria-live="polite">
+  <div class="route"><span id="tFrom"></span><span class="arr" aria-hidden="true">➜</span><span id="tTo"></span></div>
+  <div class="track" id="tArrow"><i></i><span aria-hidden="true">✈️</span></div>
+  <div class="flightinfo"><span id="tKm"></span><span id="tAlt"></span></div>
+  <div class="small" id="tSpeed"></div>
   <div class="captain" id="captain"></div>
 </section>
 
-<section class="explore hidden" id="explore" aria-live="polite">
-  <div class="top"><div class="emo" id="eEmo"></div><div><h2 id="eName"></h2><div class="where" id="eWhere"></div></div></div>
-  <div class="views" role="group" aria-label="Camera views">
-    <button class="pill" data-view="spin" type="button" aria-pressed="true">🔄 Circle around</button>
-    <button class="pill" data-view="above" type="button" aria-pressed="false">🦅 Bird's-eye</button>
-    <button class="pill" data-view="close" type="button" aria-pressed="false">🔍 Up close</button>
+<section class="panel glass explore hidden" id="explore" aria-live="polite">
+  <header class="phead">
+    <div class="emo" id="eEmo" aria-hidden="true"></div>
+    <div class="ttl"><h2 id="eName"></h2><div class="where" id="eWhere"></div></div>
+    <button class="minbtn" type="button" data-min="explore" aria-expanded="true" aria-label="Hide or show the facts">–</button>
+  </header>
+  <div class="pbody">
+    <div class="views" role="group" aria-label="Camera views">
+      <button class="vbtn" data-view="spin" type="button" aria-pressed="true">🔄<span>Circle</span></button>
+      <button class="vbtn" data-view="above" type="button" aria-pressed="false">🦅<span>Bird's-eye</span></button>
+      <button class="vbtn" data-view="close" type="button" aria-pressed="false">🔍<span>Up close</span></button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" type="button" data-tab="facts" aria-selected="true">📖 Facts</button>
+      <button class="tab" role="tab" type="button" data-tab="quiz" aria-selected="false">⭐ Quiz</button>
+    </div>
+    <div id="factBox" data-pane="facts">
+      <div class="fact" id="eFact"></div>
+      <div class="factnav"><span class="dots" id="eFactN"></span><button class="pill" id="readBtn" type="button" title="Read it aloud" aria-label="Read it aloud">🔊</button><button class="pill primary" id="nextFact" type="button">Next ›</button></div>
+    </div>
+    <div class="quiz hidden" id="quiz" data-pane="quiz"><div class="q" id="qText"></div><div class="opts" id="qOpts"></div><div class="msg" id="qMsg"></div></div>
+    <p class="howto">Drag to look around. Scroll or pinch to zoom.</p>
+    <div class="nextrow"><button class="pill primary" id="goNext" type="button">✈️ Fly on</button><button class="pill" id="toSpace" type="button">🌍 To space</button></div>
   </div>
-  <div id="factBox">
-    <div class="fact" id="eFact"></div>
-    <div class="factnav"><span class="n" id="eFactN"></span><button class="pill" id="readBtn" type="button">🔊 Read it</button><button class="pill primary" id="nextFact" type="button">Next fact</button></div>
-    <div class="quiz" id="quiz"><div class="q" id="qText"></div><div class="opts" id="qOpts"></div><div class="msg" id="qMsg"></div></div>
-  </div>
-  <p class="howto">Drag to look around. Scroll or pinch to zoom in close.</p>
-  <div class="nextrow"><button class="pill primary" id="goNext" type="button">✈️ Fly somewhere new</button><button class="pill" id="toSpace" type="button">🌍 Back to space</button></div>
 </section>
 
-<footer class="passport" aria-label="Your passport">
+<footer class="passport glass" id="passport" aria-label="Your passport" title="Open my passport">
   <div class="lbl">My passport<small id="pStats">0 stamps, 0 km flown</small></div>
   <div class="stamps" id="stamps"></div>
+  <button class="open" id="openBook" type="button">Open 📘</button>
 </footer>
+
+<div class="overlay hidden" id="bookScreen" role="dialog" aria-modal="true" aria-label="My passport">
+  <button class="book-close glass" id="closeBook" type="button" aria-label="Close passport">✕</button>
+  <div class="bookwrap">
+    <div class="booklet" id="booklet"></div>
+    <div class="booknav">
+      <button class="pill glass" id="bPrev" type="button">‹ Back</button>
+      <span id="bPage"></span>
+      <button class="pill primary" id="bNext" type="button">Turn ›</button>
+    </div>
+  </div>
+</div>
+
+<div class="loader glass hidden" id="loader" aria-live="polite">Loading the 3D view…</div>
 
 <div class="overlay" id="startScreen">
   <div class="start">
@@ -175,7 +299,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 </div>
 
 <div class="overlay hidden" id="setup">
-  <div class="setup">
+  <div class="setup glass">
     <h2>One quick setup step</h2>
     <p>Earth Explorer needs a free Cesium ion token from <a href="https://ion.cesium.com/" target="_blank" rel="noopener">ion.cesium.com</a> (Access Tokens). Put it in <b>env.js</b>, or paste it here:</p>
     <input id="tokenIn" type="text" placeholder="Paste your Cesium ion token" autocomplete="off">
@@ -226,7 +350,7 @@ const WONDERS = [
     facts: ['It opened almost 2,000 years ago, in the year 80.', 'About 50,000 people could sit inside to watch shows and gladiator fights.', 'Under the floor was a maze of tunnels with lifts that popped animals and gladiators up into the arena.'],
     quiz: { q: 'Who fought in the Colosseum?', opts: ['Gladiators', 'Knights', 'Samurai'], a: 0 } },
   { id: 'wall', name: 'Great Wall of China', emo: '🧱', city: 'Mutianyu', country: 'China', flag: '🇨🇳', lat: 40.4319, lon: 116.5704,
-    view: { h: 560, range: 950, heading: 20, pitch: -22 },
+    view: { h: 560, range: 1400, heading: 340, pitch: -45 }, // high enough to see the wall winding along the ridge
     aliases: ['great wall of china', 'great wall', 'wall of china', 'china'],
     facts: ['It was built and rebuilt over about 2,000 years to protect China from invaders.', 'All its sections added together are more than 20,000 km long!', 'You cannot see it from space with just your eyes. That is a famous myth.'],
     quiz: { q: 'Why was the Great Wall built?', opts: ['To keep out invaders', 'To hold back floods', 'As a racetrack'], a: 0 } },
@@ -240,13 +364,13 @@ const WONDERS = [
     aliases: ['christ the redeemer', 'christ', 'redeemer', 'rio', 'brazil'],
     facts: ['This giant statue stands on Corcovado mountain, about 700 metres above the city.', 'The statue is 30 metres tall, and its arms stretch 28 metres wide.', 'It gets struck by lightning several times every year!'],
     quiz: { q: 'How wide are the statue\u2019s outstretched arms?', opts: ['28 metres', '3 metres', '280 metres'], a: 0 } },
-  { id: 'chichen', name: 'Chichén Itzá', emo: '🌽', city: 'Yucatán', country: 'Mexico', flag: '🇲🇽', lat: 20.6843, lon: -88.5678,
-    view: { h: 30, range: 330, heading: 200, pitch: -22 },
+  { id: 'chichen', name: 'Chichén Itzá', emo: '🌽', city: 'Yucatán', country: 'Mexico', flag: '🇲🇽', lat: 20.6829, lon: -88.5686,
+    view: { h: 30, range: 260, heading: 160, pitch: -28 },
     aliases: ['chichen itza', 'chichen', 'itza', 'el castillo', 'mexico'],
     facts: ['The Maya built this great city more than 1,000 years ago.', 'Its pyramid, El Castillo, has 365 steps in total, one for each day of the year.', 'On the spring and autumn equinoxes, shadows make it look like a giant snake is sliding down the stairs!'],
     quiz: { q: 'How many steps does El Castillo have?', opts: ['365', '100', '1,000'], a: 0 } },
   { id: 'petra', name: 'Petra', emo: '🏜️', city: 'Ma\u2019an', country: 'Jordan', flag: '🇯🇴', lat: 30.3222, lon: 35.4515,
-    view: { h: 950, range: 320, heading: 270, pitch: -15 },
+    view: { h: 930, range: 700, heading: 200, pitch: -38 }, // Google has little 3D here, so look down on the canyons
     aliases: ['petra', 'treasury', 'jordan'],
     facts: ['The Nabataean people carved this city right into pink sandstone cliffs over 2,000 years ago.', 'To get in, you walk through the Siq, a narrow canyon about 1.2 km long.', 'The famous Treasury was carved from the top of the cliff downwards!'],
     quiz: { q: 'What is Petra carved into?', opts: ['Sandstone cliffs', 'Ice', 'Wood'], a: 0 } },
@@ -261,7 +385,7 @@ const WONDERS = [
     facts: ['It opened in 1973, and its roof looks like giant sails or seashells.', 'The roof is covered with more than 1 million tiles.', 'More than 1,500 shows happen here every year.'],
     quiz: { q: 'What does the roof look like?', opts: ['Sails or shells', 'A pyramid', 'A castle'], a: 0 } },
   { id: 'burj', name: 'Burj Khalifa', emo: '🏙️', city: 'Dubai', country: 'UAE', flag: '🇦🇪', lat: 25.1972, lon: 55.2744,
-    view: { h: 380, range: 1900, heading: 200, pitch: -8 },
+    view: { h: 380, range: 1900, heading: 200, pitch: -8 }, osm: true, // Google has no 3D buildings in Dubai
     aliases: ['burj khalifa', 'burj', 'khalifa', 'dubai', 'tallest building'],
     facts: ['At 828 metres, it is the tallest building in the world.', 'It has 163 floors.', 'On a clear day you can see it from about 95 km away.'],
     quiz: { q: 'How tall is the Burj Khalifa?', opts: ['828 metres', '100 metres', '2,000 metres'], a: 0 } },
@@ -282,11 +406,22 @@ const byId = Object.fromEntries(WONDERS.map(w => [w.id, w]));
 // =====================================================================
 // State
 // =====================================================================
-const state = { home: HOMES[0], here: null, mode: 'intro', visited: new Set(), quizDone: new Set(), kmFlown: 0, sound: true };
+const state = { home: HOMES[0], here: null, mode: 'intro', visited: new Set(), visitedAt: {}, quizDone: new Set(), kmFlown: 0, sound: true };
 state.here = placeFromHome(HOMES[0]);
 function placeFromHome(h) { return { kind: 'home', id: h.id, name: h.name, spot: h.spot, country: h.country, lat: h.lat, lon: h.lon, view: h.view, wonderId: null }; }
 function placeFromWonder(w) { return { kind: 'wonder', id: w.id, name: w.name, spot: w.name, country: w.country, lat: w.lat, lon: w.lon, view: w.view, wonderId: w.id }; }
-let viewer, tiles = null, usingPhoto = false;
+let viewer, tiles = null, usingPhoto = false, osmTiles = null;
+// Where Google has no 3D buildings (flag `osm: true`), add Cesium's OSM Buildings, loaded on first use.
+async function setOsm(on) {
+  if (!usingPhoto) return; // the fallback globe already uses OSM Buildings
+  if (on && !osmTiles) {
+    try {
+      osmTiles = await Cesium.createOsmBuildingsAsync({ style: new Cesium.Cesium3DTileStyle({ color: "color('#EFE3CF')" }) });
+      viewer.scene.primitives.add(osmTiles);
+    } catch (e) { console.warn('OSM Buildings unavailable', e); return; }
+  }
+  if (osmTiles) osmTiles.show = on;
+}
 const pins = {};
 
 // =====================================================================
@@ -351,6 +486,14 @@ const Sound = {
     o.connect(g).connect(this.master); o.start(at); o.stop(at + len + 0.05);
   },
   chime() { if (!this.ctx) return; const t = this.ctx.currentTime + 0.05; this.tone(1318.5, t, 1.4, 0.14); this.tone(1046.5, t + 0.45, 1.8, 0.14); },
+  flip() { // paper rustle: a short burst of noise swept from high to low
+    if (!this.ctx) return; const c = this.ctx, t = c.currentTime, len = Math.floor(0.4 * c.sampleRate), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) { const x = i / len; d[i] = (Math.random() * 2 - 1) * (1 - x) ** 2 * (0.6 + 0.4 * Math.sin(x * 40)); }
+    const src = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); src.buffer = buf;
+    bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.setValueAtTime(3200, t); bp.frequency.exponentialRampToValueAtTime(700, t + 0.35);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.03); g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    src.connect(bp).connect(g).connect(this.master); src.start(t);
+  },
   fanfare() { if (!this.ctx) return; const t = this.ctx.currentTime + 0.05; [523.3, 659.3, 784, 1046.5].forEach((f, i) => this.tone(f, t + i * 0.12, 0.6, 0.12, 'triangle')); },
   engineStart() {
     if (!this.ctx || this.engine) return;
@@ -427,9 +570,11 @@ function buildHomeSelect() {
   });
 }
 function refreshHere() {
-  const started = state.kmFlown > 0;
+  const flying = state.mode === 'flying' && flight, started = state.kmFlown > 0 || flying;
   $('#homeSel').classList.toggle('hidden', started);
-  $('#hereText').textContent = started ? `You are at ${state.here.spot}, ${state.here.country}` : 'Starting from';
+  $('#hereIco').textContent = flying ? '✈️' : '📍';
+  $('#hereText').textContent = flying ? `Flying to ${flight.wonder ? flight.wonder.name : 'home, ' + flight.to.name}…`
+    : started ? `You are at ${state.here.spot}, ${state.here.country}` : 'Starting from';
 }
 function refreshGrid() {
   const grid = $('#grid'); grid.innerHTML = '';
@@ -437,10 +582,10 @@ function refreshGrid() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'card'; b.dataset.id = w.id;
     if (state.visited.has(w.id)) b.classList.add('visited');
     if (state.here.wonderId === w.id) b.classList.add('here-now');
-    b.innerHTML = '<div class="emo" aria-hidden="true"></div><div class="nm"></div><div class="where"></div><div class="km"></div>';
+    b.innerHTML = '<div class="emo" aria-hidden="true"></div><div class="txt"><div class="nm"></div><div class="where"></div></div><div class="km"></div>';
     b.querySelector('.emo').textContent = w.emo; b.querySelector('.nm').textContent = w.name;
     b.querySelector('.where').textContent = `${w.flag} ${w.city}, ${w.country}`;
-    b.querySelector('.km').textContent = state.here.wonderId === w.id ? 'You are here' : `${fmtKm(distanceKm(state.here, w))} km away`;
+    b.querySelector('.km').textContent = state.here.wonderId === w.id ? 'You are here' : `${fmtKm(distanceKm(state.here, w))} km`;
     b.addEventListener('click', () => flyTo(w)); grid.appendChild(b);
   });
   filterGrid($('#search').value); refreshHere();
@@ -463,8 +608,117 @@ function setMode(m) {
   $('#picker').classList.toggle('hidden', m !== 'pick');
   $('#ticket').classList.toggle('hidden', m !== 'flying');
   $('#explore').classList.toggle('hidden', m !== 'explore');
+  $('#passport').classList.toggle('hidden', m === 'flying');
   $('#homeBtn').disabled = m === 'flying' || m === 'intro';
+  if (m === 'flying') setLoading(false);
 }
+function togglePanel(id, open) {
+  const p = $('#' + id), btn = p.querySelector('.minbtn');
+  open = open ?? p.classList.contains('min');
+  p.classList.toggle('min', !open); btn.setAttribute('aria-expanded', open); btn.textContent = open ? '–' : '+';
+}
+function showTab(name) {
+  document.querySelectorAll('#explore [data-tab]').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name));
+  document.querySelectorAll('#explore [data-pane]').forEach(p => p.classList.toggle('hidden', p.dataset.pane !== name));
+}
+
+// small "loading" note, shown only if 3D tiles take a while to arrive
+let loadTimer = null;
+function setLoading(busy) {
+  const el = $('#loader');
+  if (!busy) { clearTimeout(loadTimer); loadTimer = null; el.classList.add('hidden'); return; }
+  if (!loadTimer && el.classList.contains('hidden')) loadTimer = setTimeout(() => { loadTimer = null; el.classList.remove('hidden'); }, 800);
+}
+
+// passport book: a booklet whose pages turn, with a paper rustle
+const STAMP_COLORS = ['#C23B3B', '#1F6FB2', '#2E8B57', '#8E44AD', '#D35400', '#0F2A5C'];
+let bookPage = 0, bookLeaves = [];
+function kidName() { try { return localStorage.getItem('explorerName') || ''; } catch (e) { return ''; } }
+function mrzLine(name) {
+  const n = (name || 'EXPLORER').toUpperCase().replace(/[^A-Z]/g, '').padEnd(12, '<').slice(0, 12);
+  return `P<EARTH<${n}<<<<${String(state.visited.size).padStart(2, '0')}<<${Math.round(state.kmFlown).toString().padStart(6, '0')}<<<<`;
+}
+function buildBook() {
+  const name = kidName(), pages = [];
+  const cover = document.createElement('div'); cover.className = 'cover';
+  cover.innerHTML = '<div class="t1">PASSPORT</div><div class="emblem" aria-hidden="true">🌍</div><div class="t2">EARTH</div><div class="t3">EXPLORER</div><div class="nm"></div><div class="tap">Press “Open” to look inside</div>';
+  cover.querySelector('.nm').textContent = name;
+  pages.push(cover);
+
+  const id = document.createElement('div'); id.className = 'page';
+  id.innerHTML = '<div class="ptitle">Explorer ID</div><h3>This passport belongs to</h3><div class="photo" aria-hidden="true">🧒</div>'
+    + '<div class="fields"><div class="field"><label for="kidName">Name</label><input id="kidName" type="text" maxlength="24" placeholder="Write your name" autocomplete="off"></div>'
+    + '<div class="field"><label>Home</label><div class="h"></div></div><div class="field"><label>Stamps and distance</label><div class="k"></div></div></div><div class="mrz" aria-hidden="true"></div>';
+  const input = id.querySelector('#kidName'); input.value = name;
+  id.querySelector('.h').textContent = `${state.home.name}, ${state.home.country}`;
+  id.querySelector('.k').textContent = `${state.visited.size} of ${WONDERS.length} stamps · ${fmtKm(state.kmFlown)} km`;
+  id.querySelector('.mrz').textContent = mrzLine(name);
+  input.addEventListener('input', () => {
+    const v = input.value.trim(); try { localStorage.setItem('explorerName', v); } catch (_) {}
+    cover.querySelector('.nm').textContent = v; id.querySelector('.mrz').textContent = mrzLine(v);
+  });
+  pages.push(id);
+
+  for (let s = 0; s < WONDERS.length; s += 4) {
+    const pg = document.createElement('div'); pg.className = 'page';
+    pg.innerHTML = `<div class="ptitle">Visas · Entries</div><h3>${s === 0 ? 'My stamps' : 'More stamps'}</h3><div class="bstamps"></div>`;
+    WONDERS.slice(s, s + 4).forEach((w, j) => {
+      const i = s + j, got = state.visited.has(w.id), st = document.createElement('div');
+      st.className = 'bstamp' + (got ? '' : ' empty'); st.title = w.name;
+      st.innerHTML = '<span class="e"></span><span class="n"></span><span class="d"></span>';
+      st.querySelector('.e').textContent = w.emo; st.querySelector('.n').textContent = w.name;
+      st.querySelector('.d').textContent = got ? `${w.country} · ${state.visitedAt[w.id] || ''}` : 'Not yet';
+      if (got) { st.style.setProperty('--c', STAMP_COLORS[i % STAMP_COLORS.length]); st.style.setProperty('--r', `${((i * 37) % 24) - 12}deg`); }
+      pg.querySelector('.bstamps').appendChild(st);
+    });
+    pages.push(pg);
+  }
+
+  const why = document.createElement('div'); why.className = 'page';
+  why.innerHTML = '<div class="ptitle">A note for you</div><h3>Why travelling is wonderful 🌏</h3><div class="why">'
+    + '<p>Every place you visit has its own people, languages, food, music and stories. Travelling helps you see how differently people live, and how much we all have in common.</p>'
+    + '<ul><li>🗣️ Hear new languages</li><li>🍜 Taste new foods</li><li>🎉 See festivals and traditions</li><li>🤝 Make friends all over the world</li></ul>'
+    + '<p class="hope"></p><button class="pill" type="button">🔊 Read it to me</button></div>';
+  const hope = state.visited.size
+    ? `You have explored ${state.visited.size} ${state.visited.size === 1 ? 'wonder' : 'wonders'} on screen. We hope that one day you visit them for real and see them with your own eyes!`
+    : 'This passport is just the start. We hope that one day you visit these wonders for real and see them with your own eyes!';
+  why.querySelector('.hope').textContent = hope;
+  why.querySelector('button').addEventListener('click', () => {
+    const n = input.value.trim();
+    say(`${n ? n + ', e' : 'E'}very place you visit has its own people, languages, food, music and stories. Travelling helps you see how differently people live, and how much we all have in common. ${hope}`, true);
+  });
+  pages.push(why);
+
+  const booklet = $('#booklet'); booklet.innerHTML = '';
+  bookLeaves = pages.map((content, i) => {
+    if (i > 0) { const no = document.createElement('div'); no.className = 'pno'; no.textContent = i; content.appendChild(no); }
+    const leaf = document.createElement('div'), front = document.createElement('div'), back = document.createElement('div');
+    leaf.className = 'leaf'; front.className = 'face front'; back.className = 'face back';
+    front.appendChild(content); leaf.append(front, back); booklet.appendChild(leaf); return leaf;
+  });
+}
+function leafZ(i) { return i < bookPage ? i + 1 : bookLeaves.length * 2 - i; }
+function turnTo(n, sound = true) {
+  n = Math.max(0, Math.min(bookLeaves.length - 1, n));
+  if (n === bookPage && sound) return;
+  const moving = n > bookPage ? bookLeaves[bookPage] : n < bookPage ? bookLeaves[n] : null;
+  bookPage = n;
+  bookLeaves.forEach((l, i) => { l.classList.toggle('turned', i < n); if (l !== moving) l.style.zIndex = leafZ(i); });
+  if (moving) { // keep the turning page on top until it lands
+    const i = bookLeaves.indexOf(moving); moving.style.zIndex = 999;
+    clearTimeout(moving._z); moving._z = setTimeout(() => { moving.style.zIndex = leafZ(i); }, reduceMotion ? 0 : 720);
+  }
+  if (sound) { Sound.init(); Sound.flip(); }
+  $('#booklet').classList.toggle('open', n > 0);
+  $('#bPrev').disabled = n === 0; $('#bNext').disabled = n === bookLeaves.length - 1;
+  $('#bNext').textContent = n === 0 ? 'Open ›' : 'Turn ›';
+  $('#bPage').textContent = n === 0 ? 'Cover' : `Page ${n} of ${bookLeaves.length - 1}`;
+}
+function openBook() {
+  buildBook(); bookPage = 0; turnTo(0, false);
+  $('#bookScreen').classList.remove('hidden'); $('#bNext').focus();
+}
+function closeBook() { if (synth) synth.cancel(); $('#bookScreen').classList.add('hidden'); }
 
 // =====================================================================
 // Globe setup
@@ -488,7 +742,18 @@ function addPin(id, lon, lat, emo, name, color, visited) {
   ent.wonderId = id; pins[id] = ent; return ent;
 }
 function refreshPin(w) { const p = pins[w.id]; if (p) p.billboard.image = pinImage(w.emo, '#E4572E', state.visited.has(w.id)); }
-function moveHomePin() { if (!viewer) return; if (pins.home) viewer.entities.remove(pins.home); addPin('home', state.home.lon, state.home.lat, '🏠', state.home.name, '#1D2B4F', false); }
+function moveHomePin() { if (!viewer) return; if (pins.home) viewer.entities.remove(pins.home); addPin('home', state.home.lon, state.home.lat, '🏠', state.home.name, '#1D2B4F', false); pinKey = ''; }
+// Keep the view clear: while flying only the destination pin shows, and when exploring
+// (or close to the ground) no pins or old routes show. They come back when picking from high up.
+let pinKey = '';
+function syncPins() {
+  const m = state.mode, high = viewer.camera.positionCartographic.height > 2.5e5;
+  const dest = m === 'flying' && flight ? (flight.wonder ? flight.wonder.id : 'home') : null;
+  const key = `${m}|${high}|${dest}`;
+  if (key === pinKey) return; pinKey = key;
+  for (const id in pins) pins[id].show = dest ? id === dest : (m === 'pick' || m === 'intro') && high;
+  journeyLines.forEach(l => { l.show = m === 'pick' && high; });
+}
 
 async function setupGlobe(token) {
   Cesium.Ion.defaultAccessToken = token;
@@ -509,7 +774,13 @@ async function setupGlobe(token) {
   // Real, photorealistic 3D Earth (Google 3D Tiles through Cesium ion). If the token doesn't have it,
   // fall back to satellite imagery + terrain + 3D buildings, with city lights on the night side.
   try {
-    tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207, { showCreditsOnScreen: true, maximumScreenSpaceError: 16, skipLevelOfDetail: true, preloadFlightDestinations: true });
+    // Loading speed: default detail (16), load blurry tiles first and sharpen after, drop far-horizon detail,
+    // and keep a big cache so places you've already seen come back instantly.
+    tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207, {
+      showCreditsOnScreen: true, maximumScreenSpaceError: 16, skipLevelOfDetail: true, preloadFlightDestinations: true,
+      dynamicScreenSpaceError: true, foveatedScreenSpaceError: true, progressiveResolutionHeightFraction: 0.5,
+      cacheBytes: 1024 * 1024 * 1024, maximumCacheOverflowBytes: 512 * 1024 * 1024,
+    });
     scene.primitives.add(tiles); scene.globe.show = false; usingPhoto = true;
   } catch (e) {
     console.warn('Photorealistic 3D Tiles are not on this token. Using terrain + buildings instead.', e);
@@ -520,6 +791,8 @@ async function setupGlobe(token) {
     } catch (_) {}
     try { tiles = await Cesium.createOsmBuildingsAsync(); scene.primitives.add(tiles); } catch (_) {}
   }
+
+  if (tiles && tiles.loadProgress) tiles.loadProgress.addEventListener((pending, processing) => setLoading(pending + processing > 6 && state.mode !== 'flying' && state.mode !== 'intro'));
 
   WONDERS.forEach(w => addPin(w.id, w.lon, w.lat, w.emo, w.name, '#E4572E', false));
   moveHomePin();
@@ -624,9 +897,11 @@ function startFlight(from, to, wonder) {
     path: { leadTime: 0, trailTime: dur + 2, width: 10, resolution: 0.15, material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.22, color: Cesium.Color.fromCssColorString('#FFE3A0') }) },
   });
   viewer.clock.shouldAnimate = false; viewer.clock.currentTime = start.clone();
-  if (tiles) tiles.maximumScreenSpaceError = 24;
+  setOsm(false);
+  if (tiles) tiles.maximumScreenSpaceError = 32; // low detail at cruise so the network is free for the landing
 
   flight = { from, to, wonder, geo, km, cruise, dur, start, stop, pos, route, plane, arc, phase: 'boarding', said: {} };
+  pinKey = ''; refreshHere();
   $('#tFrom').textContent = from.kind === 'home' ? from.name : from.spot; $('#tTo').textContent = wonder ? wonder.name : to.name;
   $('#tArrow').style.setProperty('--p', '0%'); $('#tKm').textContent = `0 of ${fmtKm(km)} km`; $('#tAlt').textContent = '';
   const hrs = km / 850 + 0.5; $('#tSpeed').textContent = `Real flight: about ${hrs < 1 ? Math.round(hrs * 60) + ' min' : Math.floor(hrs) + ' h ' + Math.round((hrs % 1) * 60) + ' min'}`;
@@ -651,6 +926,7 @@ function captain(t) { $('#captain').textContent = t ? '👩‍✈️ ' + t : '';
 
 function onFrame() {
   const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  syncPins();
   if (idleSpin && !spinning) { viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -dt * 0.05); }
   if (flight && flight.phase === 'air') {
     const t = viewer.clock.currentTime, f = clamp01(Cesium.JulianDate.secondsDifference(t, flight.start) / flight.dur);
@@ -671,9 +947,10 @@ function onFrame() {
       Sound.engineLevel(f < 0.3 ? 1 : f > 0.8 ? 0.35 : 0.6);
       if (f > 0.12 && !flight.said.climb) { flight.said.climb = 1; captain(`We're climbing above ${flight.from.name}. Look how small the city gets!`); }
       if (f > 0.42 && !flight.said.space) { flight.said.space = 1; captain('See the curved line? That\u2019s the shortest way around a round Earth.'); say('See the curved line? That is the shortest way around a round Earth.'); }
-      if (f > 0.78 && !flight.said.down) { flight.said.down = 1; captain('Starting our descent. Watch out for the clouds!'); if (tiles) tiles.maximumScreenSpaceError = 12; }
+      if (f > 0.78 && !flight.said.down) { flight.said.down = 1; captain('Starting our descent. Watch out for the clouds!'); if (tiles) tiles.maximumScreenSpaceError = 20; if (flight.wonder && flight.wonder.osm) setOsm(true); }
     }
-    if (f >= 1) arrive();
+    // compare times, not the ratio: rounding can leave f at 0.99999… forever and the plane never lands
+    if (!Cesium.JulianDate.lessThan(t, flight.stop)) arrive();
   }
   if (spinning && spinCenter && state.mode !== 'flying') {
     spinView.heading += dt * 0.1;
@@ -687,8 +964,9 @@ function arrive() {
   viewer.entities.remove(fl.route);
   setTimeout(() => viewer.entities.remove(fl.plane), 1500);
   journeyLines.push(viewer.entities.add({ polyline: { positions: fl.arc, width: 2, arcType: Cesium.ArcType.NONE, material: Cesium.Color.fromCssColorString('#F2B33D').withAlpha(0.6) } }));
-  state.kmFlown += fl.km; state.here = fl.to;
-  if (tiles) tiles.maximumScreenSpaceError = usingPhoto ? 8 : 16;
+  pinKey = '';
+  state.kmFlown += fl.km; state.here = fl.to; refreshHere();
+  if (tiles) tiles.maximumScreenSpaceError = 16; // was 8, which asked for ~4x the tiles and made landings slow
 
   if (!fl.wonder) {
     Sound.chime(); banner(`Welcome home to ${fl.to.name}!`, `${fmtKm(fl.km)} km flown`); say(`Welcome home to ${fl.to.name}!`);
@@ -697,6 +975,7 @@ function arrive() {
   }
   const w = fl.wonder, first = !state.visited.has(w.id);
   state.visited.add(w.id); refreshPin(w); buildStamps();
+  if (first) state.visitedAt[w.id] = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   if (first) { const s = $('#st-' + w.id); if (s) { s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); } }
   Sound.fanfare(); banner(`Welcome to ${w.city}!`, `${w.flag} ${w.country}`);
   say(`We have landed! Welcome to the ${w.name}, in ${w.country}.`);
@@ -711,13 +990,18 @@ function startExplore(w) {
   current = w; factIdx = 0;
   $('#eEmo').textContent = w.emo; $('#eName').textContent = w.name; $('#eWhere').textContent = `${w.flag} ${w.city}, ${w.country}`;
   $('#factBox').classList.remove('hidden');
-  showFact(); buildQuiz(w); refreshGrid(); setMode('explore');
+  showFact(); buildQuiz(w); showTab('facts'); refreshGrid(); setMode('explore');
   setTimeout(() => say(w.facts[0]), 1200);
 }
-function showFact() { const w = current; $('#eFact').textContent = w.facts[factIdx]; $('#eFactN').textContent = `Fact ${factIdx + 1} of ${w.facts.length}`; $('#nextFact').textContent = factIdx < w.facts.length - 1 ? 'Next fact' : 'First fact'; }
+function showFact() {
+  const w = current; $('#eFact').textContent = w.facts[factIdx];
+  $('#eFactN').innerHTML = w.facts.map((_, i) => `<i class="${i === factIdx ? 'on' : ''}"></i>`).join('');
+  $('#eFactN').setAttribute('aria-label', `Fact ${factIdx + 1} of ${w.facts.length}`);
+  $('#nextFact').textContent = factIdx < w.facts.length - 1 ? 'Next ›' : 'Again ↺';
+}
 function buildQuiz(w) {
   const done = state.quizDone.has(w.id);
-  $('#qText').textContent = `Quick quiz: ${w.quiz.q}`; $('#qMsg').textContent = done ? 'You already got this one right! ⭐' : '';
+  $('#qText').textContent = w.quiz.q; $('#qMsg').textContent = done ? 'You already got this one right! ⭐' : '';
   const box = $('#qOpts'); box.innerHTML = '';
   w.quiz.opts.map((o, i) => i).sort(() => Math.random() - 0.5).forEach(i => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = w.quiz.opts[i];
@@ -748,7 +1032,23 @@ $('#goNext').addEventListener('click', () => { setMode('pick'); $('#search').val
 $('#toSpace').addEventListener('click', () => { spinning = false; releaseCamera(); viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(state.here.lon, state.here.lat - 15, 1.6e7), duration: reduceMotion ? 0 : 3.5 }); setMode('pick'); });
 document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 $('#homeBtn').addEventListener('click', flyHome);
-$('#soundBtn').addEventListener('click', () => { state.sound = !state.sound; $('#soundBtn').setAttribute('aria-pressed', state.sound); Sound.setOn(state.sound); if (!state.sound && synth) synth.cancel(); });
+$('#soundBtn').addEventListener('click', () => { state.sound = !state.sound; $('#soundBtn').setAttribute('aria-pressed', state.sound); $('#soundBtn').textContent = state.sound ? '🔊' : '🔇'; Sound.setOn(state.sound); if (!state.sound && synth) synth.cancel(); });
+document.querySelectorAll('[data-min]').forEach(b => b.addEventListener('click', () => togglePanel(b.dataset.min)));
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+$('#passport').addEventListener('click', openBook);
+$('#closeBook').addEventListener('click', closeBook);
+$('#bPrev').addEventListener('click', () => turnTo(bookPage - 1));
+$('#bNext').addEventListener('click', () => turnTo(bookPage + 1));
+$('#bookScreen').addEventListener('click', e => { if (e.target.id === 'bookScreen') closeBook(); });
+document.addEventListener('keydown', e => {
+  if ($('#bookScreen').classList.contains('hidden')) return;
+  if (e.key === 'Escape') closeBook();
+  else if (e.target.tagName !== 'INPUT' && e.key === 'ArrowRight') turnTo(bookPage + 1);
+  else if (e.target.tagName !== 'INPUT' && e.key === 'ArrowLeft') turnTo(bookPage - 1);
+});
+let swipeX = null; // swipe left or right to turn pages
+$('#booklet').addEventListener('pointerdown', e => { swipeX = e.target.tagName === 'INPUT' ? null : e.clientX; });
+$('#booklet').addEventListener('pointerup', e => { if (swipeX == null) return; const dx = e.clientX - swipeX; swipeX = null; if (Math.abs(dx) > 40) turnTo(bookPage + (dx < 0 ? 1 : -1)); });
 $('#mic').addEventListener('click', listen);
 $('#search').addEventListener('input', e => filterGrid(e.target.value));
 $('#search').addEventListener('keydown', e => {
