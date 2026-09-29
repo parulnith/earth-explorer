@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Earth Explorer: fly to the wonders of the world</title>
+<title>Earth Explorer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
@@ -12,9 +12,9 @@
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 <style>
 :root{
-  --glass:rgba(14,22,46,.66); --glass-2:rgba(255,255,255,.08); --glass-3:rgba(255,255,255,.16); --edge:rgba(255,255,255,.14);
+  --glass:rgba(16,20,30,.72); --glass-2:rgba(255,255,255,.08); --glass-3:rgba(255,255,255,.16); --edge:rgba(255,255,255,.14);
   --text:#fff; --text-2:rgba(228,236,255,.72); --ink:#14203F;
-  --coral:#FF5F6D; --orange:#FF9A44; --sky:#4CC9F0; --gold:#FFD166; --green:#3DDC97;
+  --coral:#E08A8F; --orange:#E3A77C; --sky:#8FB8D6; --gold:#E6CF9A; --green:#8CC7A5;
   --grad:linear-gradient(135deg,var(--orange),var(--coral)); --shadow:0 10px 30px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
@@ -49,7 +49,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .panel.min .pbody{display:none}
 .pill{border:0; border-radius:12px; padding:8px 12px; font-weight:800; background:var(--glass-2); font-size:.9rem}
 .pill:hover{background:var(--glass-3)}
-.pill.primary{background:var(--grad); color:#fff; box-shadow:0 4px 14px rgba(255,95,109,.35)}
+.pill.primary{background:var(--grad); color:#fff; box-shadow:none}
 
 /* destination picker: compact list on the right */
 .picker{right:12px; top:calc(66px + env(safe-area-inset-top,0px)); width:min(300px, calc(100vw - 24px)); max-height:calc(100vh - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
@@ -107,11 +107,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .dots i.on{background:var(--gold)}
 .quiz .q{font:800 1rem/1.25 "Baloo 2",system-ui,sans-serif; margin-bottom:8px}
 .quiz .opts{display:grid; gap:6px}
-.quiz .opts button{text-align:left; border:1px solid var(--edge); background:var(--glass-2); border-radius:12px; padding:9px 12px; font-weight:800; font-size:.9rem}
+.quiz .opts button{text-align:left; border:1px solid var(--edge); background:transparent; border-radius:10px; padding:10px 12px; font-weight:600; font-size:.9rem; transition:background .15s, border-color .15s}
 .quiz .opts button:hover:not(:disabled){background:var(--glass-3)}
-.quiz .opts button.right{border-color:var(--green); background:rgba(61,220,151,.22)}
-.quiz .opts button.wrong{border-color:var(--coral); background:rgba(255,95,109,.2)}
-.quiz .msg{margin-top:8px; font-weight:800; font-size:.9rem; min-height:1.3em}
+.quiz .opts button.right{border-color:var(--green); background:rgba(140,199,165,.12)}
+.quiz .opts button.wrong{border-color:rgba(224,138,143,.5); color:var(--text-2); background:transparent}
+.quiz .msg{margin-top:8px; font-weight:600; font-size:.85rem; color:var(--text-2); min-height:1.3em}
 .howto{font-size:.72rem; color:var(--text-2); margin:10px 2px 0; font-weight:700}
 .nextrow{display:flex; gap:6px; margin-top:10px}
 .nextrow .pill{flex:1}
@@ -257,7 +257,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
     </div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" type="button" data-tab="facts" aria-selected="true">📖 Facts</button>
-      <button class="tab" role="tab" type="button" data-tab="quiz" aria-selected="false">⭐ Quiz</button>
+      <button class="tab" role="tab" type="button" data-tab="quiz" aria-selected="false">Quiz</button>
     </div>
     <div id="factBox" data-pane="facts">
       <div class="fact" id="eFact"></div>
@@ -724,24 +724,20 @@ function closeBook() { if (synth) synth.cancel(); $('#bookScreen').classList.add
 // Globe setup
 // =====================================================================
 function pinImage(emo, color, visited) {
-  const c = document.createElement('canvas'); c.width = 96; c.height = 120; const g = c.getContext('2d');
-  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(48, 112, 16, 6, 0, 0, Math.PI * 2); g.fill();
-  g.fillStyle = color; g.beginPath(); g.moveTo(48, 112); g.bezierCurveTo(20, 76, 6, 60, 6, 44); g.arc(48, 44, 42, Math.PI, 0); g.bezierCurveTo(90, 60, 76, 76, 48, 112); g.fill();
-  g.strokeStyle = '#fff'; g.lineWidth = 5; g.stroke();
-  g.fillStyle = '#fff'; g.beginPath(); g.arc(48, 44, 30, 0, Math.PI * 2); g.fill();
-  g.font = '36px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emo, 48, 47);
-  if (visited) { g.fillStyle = '#2E8B57'; g.beginPath(); g.arc(78, 16, 15, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 4; g.beginPath(); g.moveTo(71, 16); g.lineTo(77, 22); g.lineTo(86, 10); g.stroke(); }
+  const c = document.createElement('canvas'); c.width = 48; c.height = 48; const g = c.getContext('2d');
+  g.fillStyle = color; g.beginPath(); g.arc(24, 24, 14, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 4; g.stroke();
   return c.toDataURL();
 }
 function addPin(id, lon, lat, emo, name, color, visited) {
   const ent = viewer.entities.add({
     position: Cesium.Cartesian3.fromDegrees(lon, lat),
-    billboard: { image: pinImage(emo, color, visited), width: 48, height: 60, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(2e5, 1.1, 2e7, 0.7), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, Number.POSITIVE_INFINITY) },
-    label: { text: name, font: '800 17px Nunito, sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.fromCssColorString('#1D2B4F'), outlineWidth: 5, style: Cesium.LabelStyle.FILL_AND_OUTLINE, verticalOrigin: Cesium.VerticalOrigin.TOP, pixelOffset: new Cesium.Cartesian2(0, 6), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, 1.4e7), scaleByDistance: new Cesium.NearFarScalar(2e5, 1, 1.4e7, 0.75) },
+    billboard: { image: pinImage(emo, color, visited), width: 20, height: 20, verticalOrigin: Cesium.VerticalOrigin.CENTER, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, Number.POSITIVE_INFINITY) },
+    label: { text: name, font: '600 14px Nunito, sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.fromCssColorString('#1D2B4F'), outlineWidth: 5, style: Cesium.LabelStyle.FILL_AND_OUTLINE, verticalOrigin: Cesium.VerticalOrigin.TOP, pixelOffset: new Cesium.Cartesian2(0, 14), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, 1.4e7), scaleByDistance: new Cesium.NearFarScalar(2e5, 1, 1.4e7, 0.75) },
   });
   ent.wonderId = id; pins[id] = ent; return ent;
 }
-function refreshPin(w) { const p = pins[w.id]; if (p) p.billboard.image = pinImage(w.emo, '#E4572E', state.visited.has(w.id)); }
+function refreshPin(w) { const p = pins[w.id]; if (p) p.billboard.image = pinImage(w.emo, '#C9877A', state.visited.has(w.id)); }
 function moveHomePin() { if (!viewer) return; if (pins.home) viewer.entities.remove(pins.home); addPin('home', state.home.lon, state.home.lat, '🏠', state.home.name, '#1D2B4F', false); pinKey = ''; }
 // Keep the view clear: while flying only the destination pin shows, and when exploring
 // (or close to the ground) no pins or old routes show. They come back when picking from high up.
@@ -751,8 +747,8 @@ function syncPins() {
   const dest = m === 'flying' && flight ? (flight.wonder ? flight.wonder.id : 'home') : null;
   const key = `${m}|${high}|${dest}`;
   if (key === pinKey) return; pinKey = key;
-  for (const id in pins) pins[id].show = dest ? id === dest : (m === 'pick' || m === 'intro') && high;
-  journeyLines.forEach(l => { l.show = m === 'pick' && high; });
+  for (const id in pins) pins[id].show = !!dest && id === dest;
+  journeyLines.forEach(l => { l.show = false; });
 }
 
 async function setupGlobe(token) {
@@ -771,7 +767,7 @@ async function setupGlobe(token) {
   scene.screenSpaceCameraController.minimumZoomDistance = 40;
   viewer.clock.shouldAnimate = false;
 
-  // Real, photorealistic 3D Earth (Google 3D Tiles through Cesium ion). If the token doesn't have it,
+  // Real 3D Earth (Google 3D Tiles through Cesium ion). If the token doesn't have it,
   // fall back to satellite imagery + terrain + 3D buildings, with city lights on the night side.
   try {
     // Loading speed: default detail (16), load blurry tiles first and sharpen after, drop far-horizon detail,
@@ -783,7 +779,7 @@ async function setupGlobe(token) {
     });
     scene.primitives.add(tiles); scene.globe.show = false; usingPhoto = true;
   } catch (e) {
-    console.warn('Photorealistic 3D Tiles are not on this token. Using terrain + buildings instead.', e);
+    console.warn('Google 3D Tiles are not on this token. Using terrain + buildings instead.', e);
     try { scene.setTerrain(Cesium.Terrain.fromWorldTerrain()); } catch (_) {}
     try {
       const night = viewer.imageryLayers.addImageryProvider(await Cesium.IonImageryProvider.fromAssetId(3812));
@@ -794,7 +790,7 @@ async function setupGlobe(token) {
 
   if (tiles && tiles.loadProgress) tiles.loadProgress.addEventListener((pending, processing) => setLoading(pending + processing > 6 && state.mode !== 'flying' && state.mode !== 'intro'));
 
-  WONDERS.forEach(w => addPin(w.id, w.lon, w.lat, w.emo, w.name, '#E4572E', false));
+  WONDERS.forEach(w => addPin(w.id, w.lon, w.lat, w.emo, w.name, '#C9877A', false));
   moveHomePin();
 
   const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
@@ -1001,15 +997,15 @@ function showFact() {
 }
 function buildQuiz(w) {
   const done = state.quizDone.has(w.id);
-  $('#qText').textContent = w.quiz.q; $('#qMsg').textContent = done ? 'You already got this one right! ⭐' : '';
+  $('#qText').textContent = w.quiz.q; $('#qMsg').textContent = done ? 'Already answered.' : '';
   const box = $('#qOpts'); box.innerHTML = '';
   w.quiz.opts.map((o, i) => i).sort(() => Math.random() - 0.5).forEach(i => {
     const b = document.createElement('button'); b.type = 'button'; b.textContent = w.quiz.opts[i];
     if (done && i === w.quiz.a) b.classList.add('right');
     b.addEventListener('click', () => {
       if (state.quizDone.has(w.id)) return;
-      if (i === w.quiz.a) { b.classList.add('right'); state.quizDone.add(w.id); $('#qMsg').textContent = 'Correct! ⭐ Great exploring!'; Sound.fanfare(); say('Correct! Great exploring!'); }
-      else { b.classList.add('wrong'); b.disabled = true; $('#qMsg').textContent = 'Not quite. Try another answer!'; say('Not quite. Try again!'); }
+      if (i === w.quiz.a) { b.classList.add('right'); state.quizDone.add(w.id); $('#qMsg').textContent = 'Correct.'; Sound.fanfare(); say('Correct! Great exploring!'); }
+      else { b.classList.add('wrong'); b.disabled = true; $('#qMsg').textContent = 'Not quite. Try again.'; say('Not quite. Try again!'); }
     });
     box.appendChild(b);
   });
@@ -1063,7 +1059,7 @@ function getToken() {
 let ready = false;
 async function boot(token) {
   $('#status').textContent = 'Loading the Earth…';
-  try { await setupGlobe(token); ready = true; $('#status').textContent = usingPhoto ? 'Ready! Photorealistic 3D Earth loaded.' : 'Ready!'; }
+  try { await setupGlobe(token); ready = true; $('#status').textContent = usingPhoto ? 'Ready!' : 'Ready!'; }
   catch (e) { console.error(e); $('#startScreen').classList.add('hidden'); $('#setup').classList.remove('hidden'); $('#tokenErr').textContent = 'The Earth could not load. Check the token and your internet.'; }
 }
 $('#startBtn').addEventListener('click', () => {
