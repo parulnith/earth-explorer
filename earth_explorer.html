@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Earth Explorer: fly to the wonders of the world</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="env.js" onerror="void 0"></script>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.128/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFF8EC; --paper-2:#F6EBD6; --ink:#1D2B4F; --ink-2:#5A6582; --red:#E4572E; --red-2:#B93D1B;
+  --sky:#7EC8E3; --gold:#F2B33D; --green:#2E8B57; --line:#E5D6BA; --shadow:0 10px 30px rgba(10,20,40,.28);
+}
+*{box-sizing:border-box}
+html,body{margin:0; height:100%; overflow:hidden; background:#02040A; font-family:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink)}
+#globe{position:fixed; inset:0}
+.cesium-viewer-bottom{bottom:6px !important; left:auto !important; right:10px !important; max-width:60vw}
+button{font:inherit; cursor:pointer}
+button:disabled{opacity:.5; cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold); outline-offset:2px}
+.hidden{display:none !important}
+
+.topbar{position:fixed; top:calc(12px + env(safe-area-inset-top,0px)); left:12px; right:12px; display:flex; gap:10px; align-items:center; pointer-events:none; z-index:21}
+.brand{pointer-events:auto; display:flex; align-items:center; gap:10px; background:var(--paper); border-radius:16px; padding:8px 14px; box-shadow:var(--shadow)}
+.brand h1{font:800 1.35rem/1 "Baloo 2",system-ui,sans-serif; margin:0}
+.here{pointer-events:auto; display:flex; align-items:center; gap:8px; background:var(--paper); border-radius:16px; padding:8px 12px; box-shadow:var(--shadow); font-weight:800}
+.here select{font:inherit; font-weight:800; color:var(--ink); background:var(--paper-2); border:0; border-radius:10px; padding:4px 8px}
+.spacer{flex:1}
+.iconbtn{pointer-events:auto; background:var(--paper); border:0; border-radius:14px; padding:9px 13px; box-shadow:var(--shadow); font-weight:800; color:var(--ink); display:flex; align-items:center; gap:6px}
+.iconbtn[aria-pressed="false"]{opacity:.65}
+@media (max-width:760px){ .brand h1{font-size:1.1rem} .iconbtn .lbl{display:none} .here{font-size:.85rem} }
+
+.picker{position:fixed; right:12px; top:calc(76px + env(safe-area-inset-top,0px)); bottom:calc(92px + env(safe-area-inset-bottom,0px)); width:min(390px, calc(100vw - 24px)); background:var(--paper); border-radius:22px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; z-index:9}
+.picker header{padding:16px 18px 10px; border-bottom:2px dashed var(--line)}
+.picker h2{font:800 1.6rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0 0 10px}
+.search{display:flex; gap:8px}
+.search input{flex:1; min-width:0; font:inherit; font-size:1.05rem; font-weight:700; padding:12px 14px; border-radius:14px; border:2px solid var(--line); background:#fff; color:var(--ink)}
+.mic{border:0; border-radius:14px; background:var(--red); color:#fff; font-size:1.3rem; width:54px; flex:none}
+.mic.listening{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(228,87,46,.6)}50%{box-shadow:0 0 0 10px rgba(228,87,46,0)}}
+.hint{font-size:.88rem; color:var(--ink-2); margin:8px 2px 0; min-height:1.2em}
+.grid{overflow:auto; padding:12px 14px 18px; display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.card{position:relative; text-align:left; background:#fff; border:2px solid var(--line); border-radius:16px; padding:10px 12px; color:var(--ink); transition:transform .12s}
+.card:hover{transform:translateY(-2px); border-color:var(--sky)}
+.card .emo{font-size:1.9rem; line-height:1}
+.card .nm{font:800 1.02rem/1.15 "Baloo 2",system-ui,sans-serif; margin-top:4px}
+.card .where{font-size:.8rem; color:var(--ink-2); font-weight:700}
+.card .km{font-size:.8rem; font-weight:800; color:var(--red-2); margin-top:4px}
+.card.visited::after{content:"VISITED"; position:absolute; top:8px; right:8px; font:800 .62rem/1 "Nunito",sans-serif; letter-spacing:.06em; color:var(--green); border:2px solid var(--green); border-radius:6px; padding:3px 5px; transform:rotate(8deg)}
+.card.here-now{opacity:.5; pointer-events:none}
+@media (max-width:760px){ .picker{top:auto; height:52vh; bottom:calc(84px + env(safe-area-inset-bottom,0px)); right:8px; width:calc(100vw - 16px)} }
+
+.ticket{position:fixed; top:calc(76px + env(safe-area-inset-top,0px)); left:50%; transform:translateX(-50%); background:var(--paper); border-radius:18px; box-shadow:var(--shadow); padding:12px 20px 14px; width:min(500px, calc(100vw - 24px)); z-index:9}
+.route{display:flex; align-items:center; gap:14px; font:800 1.2rem/1.1 "Baloo 2",system-ui,sans-serif}
+.route .arrow{flex:1; height:2px; background:repeating-linear-gradient(90deg,var(--ink) 0 8px,transparent 8px 14px); position:relative}
+.route .arrow span{position:absolute; top:-15px; font-size:1.3rem; transform:translateX(-50%); left:var(--p,0%)}
+.flightinfo{display:flex; justify-content:space-between; gap:10px; margin-top:8px; font-weight:800; color:var(--ink-2); font-size:.92rem}
+.captain{margin-top:8px; font-weight:800; color:var(--ink); font-size:.95rem; min-height:1.3em}
+
+.explore{position:fixed; left:12px; bottom:calc(92px + env(safe-area-inset-bottom,0px)); width:min(420px, calc(100vw - 24px)); background:var(--paper); border-radius:22px; box-shadow:var(--shadow); padding:16px 18px 18px; z-index:9; max-height:calc(100vh - 190px); overflow:auto}
+.explore .top{display:flex; gap:12px; align-items:center}
+.explore .emo{font-size:2.6rem; line-height:1}
+.explore h2{font:800 1.6rem/1.05 "Baloo 2",system-ui,sans-serif; margin:0}
+.explore .where{color:var(--ink-2); font-weight:800}
+.views{display:flex; gap:6px; margin-top:12px; flex-wrap:wrap}
+.fact{background:#fff; border:2px solid var(--line); border-radius:14px; padding:12px 14px; margin:12px 0 8px; font-size:1.05rem; font-weight:700; min-height:4.2em}
+.factnav{display:flex; gap:8px; align-items:center}
+.factnav .n{color:var(--ink-2); font-weight:800; font-size:.9rem; margin-right:auto}
+.pill{border:0; border-radius:12px; padding:9px 14px; font-weight:800; background:var(--paper-2); color:var(--ink)}
+.pill.primary{background:var(--red); color:#fff}
+.pill[aria-pressed="true"]{background:var(--ink); color:#fff}
+.quiz{margin-top:14px; border-top:2px dashed var(--line); padding-top:12px}
+.quiz .q{font:800 1.1rem/1.2 "Baloo 2",system-ui,sans-serif; margin-bottom:8px}
+.quiz .opts{display:grid; gap:8px}
+.quiz .opts button{text-align:left; border:2px solid var(--line); background:#fff; border-radius:12px; padding:10px 12px; font-weight:800; color:var(--ink)}
+.quiz .opts button.right{border-color:var(--green); background:#E4F4EA}
+.quiz .opts button.wrong{border-color:var(--red); background:#FBE6DF}
+.quiz .msg{margin-top:8px; font-weight:800; min-height:1.3em}
+.howto{font-size:.85rem; color:var(--ink-2); margin-top:12px; font-weight:700}
+.nextrow{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+@media (max-width:760px){ .explore{max-height:50vh} }
+
+.passport{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(12px + env(safe-area-inset-bottom,0px)); background:var(--ink); color:#fff; border-radius:18px; box-shadow:var(--shadow); padding:8px 14px; display:flex; align-items:center; gap:12px; z-index:9; max-width:calc(100vw - 24px)}
+.passport .lbl{font:800 1rem/1.1 "Baloo 2",system-ui,sans-serif; white-space:nowrap}
+.passport .lbl small{display:block; font:700 .75rem "Nunito",sans-serif; opacity:.8}
+.stamps{display:flex; gap:4px; overflow:auto}
+.stamp{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:1.05rem; border:2px dashed rgba(255,255,255,.35); filter:grayscale(1); opacity:.45; flex:none}
+.stamp.got{filter:none; opacity:1; border-style:solid; border-color:var(--gold); background:rgba(242,179,61,.18)}
+.stamp.pop{animation:pop .6s ease}
+@keyframes pop{0%{transform:scale(.4) rotate(-20deg)}70%{transform:scale(1.25) rotate(8deg)}100%{transform:scale(1)}}
+
+.banner{position:fixed; left:50%; top:36%; transform:translate(-50%,-50%); background:var(--paper); border-radius:24px; box-shadow:var(--shadow); padding:18px 30px; text-align:center; z-index:12; pointer-events:none; animation:bannerIn .5s ease}
+.banner b{display:block; font:800 clamp(1.6rem,4vw,2.6rem)/1.05 "Baloo 2",system-ui,sans-serif}
+.banner span{font-weight:800; color:var(--ink-2)}
+@keyframes bannerIn{from{opacity:0; transform:translate(-50%,-40%)}to{opacity:1; transform:translate(-50%,-50%)}}
+
+.overlay{position:fixed; inset:0; display:grid; place-items:center; z-index:20; padding:16px; background:radial-gradient(ellipse at center, rgba(8,16,36,.55), rgba(2,4,10,.92))}
+.start{text-align:center; color:#fff; max-width:560px}
+.start .big{font:800 clamp(2.4rem,7vw,4.2rem)/1 "Baloo 2",system-ui,sans-serif; margin:0}
+.start p{font-weight:700; opacity:.85; font-size:1.1rem}
+.start button{margin-top:10px; font:800 1.3rem "Baloo 2",system-ui,sans-serif; background:var(--gold); color:var(--ink); border:0; border-radius:999px; padding:14px 34px; box-shadow:0 6px 0 #B98420}
+.start .status{margin-top:14px; font-weight:700; opacity:.8; min-height:1.3em}
+.setup{background:var(--paper); border-radius:22px; box-shadow:var(--shadow); padding:22px 24px; width:min(520px,100%)}
+.setup h2{font:800 1.7rem/1.1 "Baloo 2",system-ui,sans-serif; margin:0 0 8px}
+.setup input{width:100%; font:inherit; padding:12px; border-radius:12px; border:2px solid var(--line); margin:8px 0 10px}
+.setup .err{color:var(--red-2); font-weight:800; min-height:1.2em}
+.fade{position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:11; transition:opacity .6s}
+.fade.on{opacity:.85}
+@media (prefers-reduced-motion: reduce){ .banner,.stamp.pop,.mic.listening{animation:none} }
+</style>
+</head>
+<body>
+<div id="globe"></div>
+
+<div class="topbar">
+  <div class="brand"><span aria-hidden="true">✈️</span><h1>Earth Explorer</h1></div>
+  <div class="here" id="here">📍 <span id="hereText">Starting from</span>
+    <select id="homeSel" aria-label="Choose your starting city"></select>
+  </div>
+  <div class="spacer"></div>
+  <button class="iconbtn" id="soundBtn" type="button" aria-pressed="true" title="Sound and voice on or off">🔊 <span class="lbl">Sound</span></button>
+  <button class="iconbtn" id="homeBtn" type="button" title="Fly home">🏠 <span class="lbl">Fly home</span></button>
+</div>
+
+<section class="picker hidden" id="picker" aria-label="Choose a destination">
+  <header>
+    <h2>Where do you want to go?</h2>
+    <div class="search">
+      <input id="search" type="text" placeholder="Type a place, like Eiffel Tower" autocomplete="off" aria-label="Type a place">
+      <button class="mic" id="mic" type="button" title="Say where you want to go" aria-label="Say where you want to go">🎤</button>
+    </div>
+    <p class="hint" id="hint">Tap a wonder, type its name, or press 🎤 and say it.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+</section>
+
+<section class="ticket hidden" id="ticket" aria-live="polite">
+  <div class="route"><span id="tFrom"></span><div class="arrow" id="tArrow"><span>✈️</span></div><span id="tTo"></span></div>
+  <div class="flightinfo"><span id="tKm"></span><span id="tAlt"></span><span id="tSpeed"></span></div>
+  <div class="captain" id="captain"></div>
+</section>
+
+<section class="explore hidden" id="explore" aria-live="polite">
+  <div class="top"><div class="emo" id="eEmo"></div><div><h2 id="eName"></h2><div class="where" id="eWhere"></div></div></div>
+  <div class="views" role="group" aria-label="Camera views">
+    <button class="pill" data-view="spin" type="button" aria-pressed="true">🔄 Circle around</button>
+    <button class="pill" data-view="above" type="button" aria-pressed="false">🦅 Bird's-eye</button>
+    <button class="pill" data-view="close" type="button" aria-pressed="false">🔍 Up close</button>
+  </div>
+  <div id="factBox">
+    <div class="fact" id="eFact"></div>
+    <div class="factnav"><span class="n" id="eFactN"></span><button class="pill" id="readBtn" type="button">🔊 Read it</button><button class="pill primary" id="nextFact" type="button">Next fact</button></div>
+    <div class="quiz" id="quiz"><div class="q" id="qText"></div><div class="opts" id="qOpts"></div><div class="msg" id="qMsg"></div></div>
+  </div>
+  <p class="howto">Drag to look around. Scroll or pinch to zoom in close.</p>
+  <div class="nextrow"><button class="pill primary" id="goNext" type="button">✈️ Fly somewhere new</button><button class="pill" id="toSpace" type="button">🌍 Back to space</button></div>
+</section>
+
+<footer class="passport" aria-label="Your passport">
+  <div class="lbl">My passport<small id="pStats">0 stamps, 0 km flown</small></div>
+  <div class="stamps" id="stamps"></div>
+</footer>
+
+<div class="overlay" id="startScreen">
+  <div class="start">
+    <p class="big">Ready for take-off?</p>
+    <p>Pick a wonder of the world, fly there across the real Earth, land and explore it in 3D.</p>
+    <button id="startBtn" type="button">✈️ Start the adventure</button>
+    <div class="status" id="status">Loading the Earth…</div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="setup">
+  <div class="setup">
+    <h2>One quick setup step</h2>
+    <p>Earth Explorer needs a free Cesium ion token from <a href="https://ion.cesium.com/" target="_blank" rel="noopener">ion.cesium.com</a> (Access Tokens). Put it in <b>env.js</b>, or paste it here:</p>
+    <input id="tokenIn" type="text" placeholder="Paste your Cesium ion token" autocomplete="off">
+    <div class="err" id="tokenErr"></div>
+    <button class="pill primary" id="tokenGo" type="button">Save and start</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// =====================================================================
+// Places. Each "view" is the point the camera looks at (metres above the ellipsoid),
+// how far away it sits, and its compass heading and tilt in degrees.
+// =====================================================================
+const HOMES = [
+  { id: 'delhi', name: 'New Delhi', spot: 'India Gate', emo: '🇮🇳', country: 'India', lat: 28.6129, lon: 77.2295, view: { h: 190, range: 520, heading: 90, pitch: -18 } },
+  { id: 'mumbai', name: 'Mumbai', spot: 'Gateway of India', emo: '🇮🇳', country: 'India', lat: 18.9220, lon: 72.8347, view: { h: -40, range: 380, heading: 60, pitch: -20 } },
+  { id: 'bengaluru', name: 'Bengaluru', spot: 'Vidhana Soudha', emo: '🇮🇳', country: 'India', lat: 12.9794, lon: 77.5910, view: { h: 860, range: 480, heading: 90, pitch: -20 } },
+  { id: 'chennai', name: 'Chennai', spot: 'Chennai Central', emo: '🇮🇳', country: 'India', lat: 13.0827, lon: 80.2757, view: { h: -70, range: 450, heading: 0, pitch: -25 } },
+  { id: 'kolkata', name: 'Kolkata', spot: 'Victoria Memorial', emo: '🇮🇳', country: 'India', lat: 22.5448, lon: 88.3426, view: { h: -20, range: 480, heading: 0, pitch: -22 } },
+  { id: 'hyderabad', name: 'Hyderabad', spot: 'Charminar', emo: '🇮🇳', country: 'India', lat: 17.3616, lon: 78.4747, view: { h: 475, range: 300, heading: 0, pitch: -22 } },
+  { id: 'jaipur', name: 'Jaipur', spot: 'Hawa Mahal', emo: '🇮🇳', country: 'India', lat: 26.9239, lon: 75.8267, view: { h: 395, range: 260, heading: 270, pitch: -15 } },
+];
+
+const WONDERS = [
+  { id: 'taj', name: 'Taj Mahal', emo: '🕌', city: 'Agra', country: 'India', flag: '🇮🇳', lat: 27.1751, lon: 78.0421,
+    view: { h: 150, range: 650, heading: 0, pitch: -22 },
+    aliases: ['taj mahal', 'taj', 'agra'],
+    facts: ['Emperor Shah Jahan built the Taj Mahal in memory of his wife, Mumtaz Mahal.', 'Around 20,000 workers helped build it, and it took more than 20 years.', 'Its white marble seems to change colour: pinkish in the morning, bright white at noon and golden at sunset.'],
+    quiz: { q: 'Who built the Taj Mahal?', opts: ['Shah Jahan', 'Akbar', 'Ashoka'], a: 0 } },
+  { id: 'eiffel', name: 'Eiffel Tower', emo: '🗼', city: 'Paris', country: 'France', flag: '🇫🇷', lat: 48.8584, lon: 2.2945,
+    view: { h: 190, range: 900, heading: 300, pitch: -18 },
+    aliases: ['eiffel tower', 'eiffel', 'effel', 'paris', 'france'],
+    facts: ['It was built for a big world fair in 1889. Lots of people in Paris first thought it was ugly!', 'It is about 330 metres tall, as tall as an 81-storey building.', 'In summer heat the iron expands, making the tower up to about 15 centimetres taller.'],
+    quiz: { q: 'What is the Eiffel Tower made of?', opts: ['Iron', 'Stone', 'Wood'], a: 0 } },
+  { id: 'giza', name: 'Great Pyramid of Giza', emo: '🔺', city: 'Giza', country: 'Egypt', flag: '🇪🇬', lat: 29.9792, lon: 31.1342,
+    view: { h: 140, range: 750, heading: 230, pitch: -20 },
+    aliases: ['great pyramid', 'pyramid of giza', 'pyramids', 'pyramid', 'giza', 'egypt'],
+    facts: ['It was built about 4,500 years ago as a tomb for Pharaoh Khufu.', 'It is made of about 2.3 million stone blocks, and some weigh more than an elephant.', 'For about 3,800 years it was the tallest thing people had ever built.'],
+    quiz: { q: 'Who was the Great Pyramid built for?', opts: ['Pharaoh Khufu', 'Cleopatra', 'Tutankhamun'], a: 0 } },
+  { id: 'colosseum', name: 'Colosseum', emo: '🏟️', city: 'Rome', country: 'Italy', flag: '🇮🇹', lat: 41.8902, lon: 12.4922,
+    view: { h: 95, range: 420, heading: 200, pitch: -32 },
+    aliases: ['colosseum', 'coliseum', 'colloseum', 'rome', 'italy'],
+    facts: ['It opened almost 2,000 years ago, in the year 80.', 'About 50,000 people could sit inside to watch shows and gladiator fights.', 'Under the floor was a maze of tunnels with lifts that popped animals and gladiators up into the arena.'],
+    quiz: { q: 'Who fought in the Colosseum?', opts: ['Gladiators', 'Knights', 'Samurai'], a: 0 } },
+  { id: 'wall', name: 'Great Wall of China', emo: '🧱', city: 'Mutianyu', country: 'China', flag: '🇨🇳', lat: 40.4319, lon: 116.5704,
+    view: { h: 560, range: 950, heading: 20, pitch: -22 },
+    aliases: ['great wall of china', 'great wall', 'wall of china', 'china'],
+    facts: ['It was built and rebuilt over about 2,000 years to protect China from invaders.', 'All its sections added together are more than 20,000 km long!', 'You cannot see it from space with just your eyes. That is a famous myth.'],
+    quiz: { q: 'Why was the Great Wall built?', opts: ['To keep out invaders', 'To hold back floods', 'As a racetrack'], a: 0 } },
+  { id: 'machu', name: 'Machu Picchu', emo: '⛰️', city: 'Cusco region', country: 'Peru', flag: '🇵🇪', lat: -13.1631, lon: -72.5450,
+    view: { h: 2450, range: 900, heading: 330, pitch: -22 },
+    aliases: ['machu picchu', 'machu pichu', 'machupicchu', 'machu', 'peru'],
+    facts: ['The Inca built this city high in the Andes mountains around 600 years ago.', 'It sits about 2,400 metres above sea level, often above the clouds.', 'Its stones fit together so tightly, without any cement, that you cannot slide a knife between them.'],
+    quiz: { q: 'Which people built Machu Picchu?', opts: ['The Inca', 'The Romans', 'The Vikings'], a: 0 } },
+  { id: 'christ', name: 'Christ the Redeemer', emo: '🌄', city: 'Rio de Janeiro', country: 'Brazil', flag: '🇧🇷', lat: -22.9519, lon: -43.2105,
+    view: { h: 715, range: 260, heading: 150, pitch: -10 },
+    aliases: ['christ the redeemer', 'christ', 'redeemer', 'rio', 'brazil'],
+    facts: ['This giant statue stands on Corcovado mountain, about 700 metres above the city.', 'The statue is 30 metres tall, and its arms stretch 28 metres wide.', 'It gets struck by lightning several times every year!'],
+    quiz: { q: 'How wide are the statue\u2019s outstretched arms?', opts: ['28 metres', '3 metres', '280 metres'], a: 0 } },
+  { id: 'chichen', name: 'Chichén Itzá', emo: '🌽', city: 'Yucatán', country: 'Mexico', flag: '🇲🇽', lat: 20.6843, lon: -88.5678,
+    view: { h: 30, range: 330, heading: 200, pitch: -22 },
+    aliases: ['chichen itza', 'chichen', 'itza', 'el castillo', 'mexico'],
+    facts: ['The Maya built this great city more than 1,000 years ago.', 'Its pyramid, El Castillo, has 365 steps in total, one for each day of the year.', 'On the spring and autumn equinoxes, shadows make it look like a giant snake is sliding down the stairs!'],
+    quiz: { q: 'How many steps does El Castillo have?', opts: ['365', '100', '1,000'], a: 0 } },
+  { id: 'petra', name: 'Petra', emo: '🏜️', city: 'Ma\u2019an', country: 'Jordan', flag: '🇯🇴', lat: 30.3222, lon: 35.4515,
+    view: { h: 950, range: 320, heading: 270, pitch: -15 },
+    aliases: ['petra', 'treasury', 'jordan'],
+    facts: ['The Nabataean people carved this city right into pink sandstone cliffs over 2,000 years ago.', 'To get in, you walk through the Siq, a narrow canyon about 1.2 km long.', 'The famous Treasury was carved from the top of the cliff downwards!'],
+    quiz: { q: 'What is Petra carved into?', opts: ['Sandstone cliffs', 'Ice', 'Wood'], a: 0 } },
+  { id: 'liberty', name: 'Statue of Liberty', emo: '🗽', city: 'New York', country: 'USA', flag: '🇺🇸', lat: 40.6892, lon: -74.0445,
+    view: { h: 20, range: 380, heading: 220, pitch: -15 },
+    aliases: ['statue of liberty', 'liberty', 'new york', 'america'],
+    facts: ['France gave this statue to the United States as a gift of friendship in 1886.', 'It is made of copper. It started out shiny brown and slowly turned green.', 'From the ground to the tip of the torch it is about 93 metres tall.'],
+    quiz: { q: 'Why is the Statue of Liberty green?', opts: ['Its copper changed colour over time', 'It was painted green', 'It is made of green glass'], a: 0 } },
+  { id: 'sydney', name: 'Sydney Opera House', emo: '🎭', city: 'Sydney', country: 'Australia', flag: '🇦🇺', lat: -33.8568, lon: 151.2153,
+    view: { h: 30, range: 520, heading: 160, pitch: -22 },
+    aliases: ['sydney opera house', 'opera house', 'sydney', 'australia'],
+    facts: ['It opened in 1973, and its roof looks like giant sails or seashells.', 'The roof is covered with more than 1 million tiles.', 'More than 1,500 shows happen here every year.'],
+    quiz: { q: 'What does the roof look like?', opts: ['Sails or shells', 'A pyramid', 'A castle'], a: 0 } },
+  { id: 'burj', name: 'Burj Khalifa', emo: '🏙️', city: 'Dubai', country: 'UAE', flag: '🇦🇪', lat: 25.1972, lon: 55.2744,
+    view: { h: 380, range: 1900, heading: 200, pitch: -8 },
+    aliases: ['burj khalifa', 'burj', 'khalifa', 'dubai', 'tallest building'],
+    facts: ['At 828 metres, it is the tallest building in the world.', 'It has 163 floors.', 'On a clear day you can see it from about 95 km away.'],
+    quiz: { q: 'How tall is the Burj Khalifa?', opts: ['828 metres', '100 metres', '2,000 metres'], a: 0 } },
+  { id: 'everest', name: 'Mount Everest', emo: '🏔️', city: 'Himalayas', country: 'Nepal', flag: '🇳🇵', lat: 27.9881, lon: 86.9250,
+    view: { h: 8300, range: 14000, heading: 160, pitch: -12 },
+    aliases: ['mount everest', 'everest', 'himalaya', 'himalayas', 'nepal', 'tallest mountain', 'highest mountain'],
+    facts: ['At 8,849 metres, it is the highest mountain above sea level on Earth.', 'At the top there is only about a third as much oxygen as at sea level, so most climbers carry oxygen tanks.', 'In Nepal it is called Sagarmatha, and in Tibet it is called Chomolungma.'],
+    quiz: { q: 'What do most Everest climbers carry to help them breathe?', opts: ['Oxygen tanks', 'Balloons', 'Fans'], a: 0 } },
+  { id: 'canyon', name: 'Grand Canyon', emo: '🏞️', city: 'Arizona', country: 'USA', flag: '🇺🇸', lat: 36.0990, lon: -112.1120,
+    view: { h: 1600, range: 9000, heading: 20, pitch: -18 },
+    aliases: ['grand canyon', 'canyon', 'arizona'],
+    facts: ['The Colorado River carved it slowly over millions of years.', 'It is about 446 km long and up to 1,857 metres deep.', 'Its rock layers are like a history book. The oldest rocks at the bottom are nearly 2 billion years old!'],
+    quiz: { q: 'What carved the Grand Canyon?', opts: ['A river', 'A glacier', 'A meteor'], a: 0 } },
+];
+
+const byId = Object.fromEntries(WONDERS.map(w => [w.id, w]));
+
+// =====================================================================
+// State
+// =====================================================================
+const state = { home: HOMES[0], here: null, mode: 'intro', visited: new Set(), quizDone: new Set(), kmFlown: 0, sound: true };
+state.here = placeFromHome(HOMES[0]);
+function placeFromHome(h) { return { kind: 'home', id: h.id, name: h.name, spot: h.spot, country: h.country, lat: h.lat, lon: h.lon, view: h.view, wonderId: null }; }
+function placeFromWonder(w) { return { kind: 'wonder', id: w.id, name: w.name, spot: w.name, country: w.country, lat: w.lat, lon: w.lon, view: w.view, wonderId: w.id }; }
+let viewer, tiles = null, usingPhoto = false;
+const pins = {};
+
+// =====================================================================
+// Helpers
+// =====================================================================
+const toRad = d => d * Math.PI / 180;
+function distanceKm(a, b) {
+  const R = 6371, dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function bearing(c1, c2) {
+  const dLon = c2.longitude - c1.longitude;
+  return Math.atan2(Math.sin(dLon) * Math.cos(c2.latitude), Math.cos(c1.latitude) * Math.sin(c2.latitude) - Math.sin(c1.latitude) * Math.cos(c2.latitude) * Math.cos(dLon));
+}
+const fmtKm = n => Math.round(n).toLocaleString('en-IN');
+const smooth = x => x * x * (3 - 2 * x);
+const clamp01 = x => Math.min(1, Math.max(0, x));
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\b(the|a|to|take|me|go|fly|please|i|want|let|lets|us|visit)\b/g, ' ').replace(/\s+/g, ' ').trim();
+function lev(a, b) {
+  const m = a.length, n = b.length, d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 1; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+function matchWonder(text) {
+  const t = norm(text); if (!t) return null;
+  let best = null, bestScore = Infinity;
+  for (const w of WONDERS) for (const al of w.aliases) {
+    if (t.includes(al)) { const s = -al.length; if (s < bestScore) { bestScore = s; best = w; } continue; }
+    const words = t.split(' '), k = al.split(' ').length;
+    for (let i = 0; i + k <= words.length; i++) {
+      const chunk = words.slice(i, i + k).join(' '), dist = lev(chunk, al);
+      const allowed = al.length >= 8 ? 3 : al.length >= 5 ? 2 : al.length >= 4 ? 1 : 0;
+      if (dist <= allowed && dist < bestScore) { bestScore = dist; best = w; }
+    }
+  }
+  return best;
+}
+let bannerTimer = null;
+function banner(big, small, ms = 2800) {
+  document.querySelectorAll('.banner').forEach(b => b.remove());
+  const el = document.createElement('div'); el.className = 'banner'; el.innerHTML = '<b></b><span></span>';
+  el.querySelector('b').textContent = big; el.querySelector('span').textContent = small || '';
+  document.body.appendChild(el); clearTimeout(bannerTimer); bannerTimer = setTimeout(() => el.remove(), ms);
+}
+
+// =====================================================================
+// Sound: synthesised engine, cabin chime, wind. No audio files needed.
+// =====================================================================
+const Sound = {
+  ctx: null, master: null, engine: null,
+  init() {
+    if (this.ctx) { this.ctx.resume && this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    this.ctx = new AC(); this.master = this.ctx.createGain(); this.master.gain.value = state.sound ? 1 : 0; this.master.connect(this.ctx.destination);
+  },
+  setOn(on) { if (this.master) this.master.gain.setTargetAtTime(on ? 1 : 0, this.ctx.currentTime, 0.05); },
+  tone(freq, at, len, vol = 0.18, type = 'sine') {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+    o.connect(g).connect(this.master); o.start(at); o.stop(at + len + 0.05);
+  },
+  chime() { if (!this.ctx) return; const t = this.ctx.currentTime + 0.05; this.tone(1318.5, t, 1.4, 0.14); this.tone(1046.5, t + 0.45, 1.8, 0.14); },
+  fanfare() { if (!this.ctx) return; const t = this.ctx.currentTime + 0.05; [523.3, 659.3, 784, 1046.5].forEach((f, i) => this.tone(f, t + i * 0.12, 0.6, 0.12, 'triangle')); },
+  engineStart() {
+    if (!this.ctx || this.engine) return;
+    const c = this.ctx, len = 2 * c.sampleRate, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+    let last = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+    const noise = c.createBufferSource(); noise.buffer = buf; noise.loop = true;
+    const nf = c.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 500;
+    const hum = c.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 72;
+    const hf = c.createBiquadFilter(); hf.type = 'lowpass'; hf.frequency.value = 240;
+    const hg = c.createGain(); hg.gain.value = 0.25;
+    const out = c.createGain(); out.gain.value = 0;
+    noise.connect(nf).connect(out); hum.connect(hf).connect(hg).connect(out); out.connect(this.master);
+    noise.start(); hum.start(); out.gain.linearRampToValueAtTime(0.35, c.currentTime + 2.5);
+    this.engine = { noise, nf, hum, hf, out };
+  },
+  engineLevel(power) { // 0..1, how hard the engines are working
+    const e = this.engine; if (!e) return; const t = this.ctx.currentTime;
+    e.nf.frequency.setTargetAtTime(350 + power * 900, t, 0.3); e.hum.frequency.setTargetAtTime(62 + power * 30, t, 0.3);
+    e.out.gain.setTargetAtTime(0.18 + power * 0.22, t, 0.4);
+  },
+  engineStop() {
+    const e = this.engine; if (!e) return; this.engine = null; const t = this.ctx.currentTime;
+    e.out.gain.setTargetAtTime(0, t, 0.6); setTimeout(() => { try { e.noise.stop(); e.hum.stop(); } catch (_) {} }, 3000);
+  },
+};
+
+// speech out
+const synth = window.speechSynthesis || null;
+let voicePick = null;
+function chooseVoice() {
+  if (!synth) return; const vs = synth.getVoices(); if (!vs.length) return;
+  const pref = ['Google UK English Female', 'Samantha', 'Microsoft Sonia', 'Microsoft Aria', 'Rishi', 'Google US English', 'Karen', 'Daniel'];
+  for (const n of pref) { const v = vs.find(v => v.name.startsWith(n)); if (v) { voicePick = v; return; } }
+  voicePick = vs.find(v => /^en/i.test(v.lang)) || null;
+}
+if (synth) { chooseVoice(); synth.onvoiceschanged = chooseVoice; }
+function say(text, force = false) {
+  if (!synth || (!state.sound && !force)) return; synth.cancel();
+  const u = new SpeechSynthesisUtterance(text); if (voicePick) u.voice = voicePick; u.rate = 1; u.pitch = 1.05; synth.speak(u);
+}
+
+// speech in
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+function listen() {
+  const hint = $('#hint');
+  if (!Rec) { hint.textContent = 'This browser can\u2019t listen. Try Chrome or Edge, or just type the name.'; return; }
+  if (rec) { rec.stop(); return; }
+  rec = new Rec(); rec.lang = 'en-IN'; rec.interimResults = true; rec.maxAlternatives = 3;
+  $('#mic').classList.add('listening'); hint.textContent = 'Listening… say a place, like \u201cTake me to the pyramids\u201d.';
+  rec.onresult = e => {
+    const res = e.results[e.results.length - 1], heard = res[0].transcript;
+    $('#search').value = heard; filterGrid(heard);
+    if (res.isFinal) {
+      let w = null; for (let i = 0; i < res.length && !w; i++) w = matchWonder(res[i].transcript);
+      if (w) { hint.textContent = `Heard \u201c${heard}\u201d. Off to the ${w.name}!`; setTimeout(() => flyTo(w), 500); }
+      else { hint.textContent = `I heard \u201c${heard}\u201d but couldn\u2019t find that place. Try another wonder!`; say('Hmm, I don\u2019t know that place yet. Try another one!'); }
+    }
+  };
+  rec.onerror = e => { hint.textContent = e.error === 'not-allowed' ? 'The microphone is blocked. Allow it in your browser, or open this page from a local server.' : 'I didn\u2019t catch that. Press 🎤 and try again.'; };
+  rec.onend = () => { $('#mic').classList.remove('listening'); rec = null; };
+  try { rec.start(); } catch (e) { rec = null; $('#mic').classList.remove('listening'); }
+}
+
+// =====================================================================
+// UI
+// =====================================================================
+function buildHomeSelect() {
+  const sel = $('#homeSel'); sel.innerHTML = '';
+  HOMES.forEach(h => { const o = document.createElement('option'); o.value = h.id; o.textContent = `${h.name}`; sel.appendChild(o); });
+  sel.addEventListener('change', () => {
+    const h = HOMES.find(x => x.id === sel.value); state.home = h; state.here = placeFromHome(h);
+    moveHomePin(); refreshGrid(); if (viewer && state.mode !== 'intro') arriveAt(state.here, 3);
+  });
+}
+function refreshHere() {
+  const started = state.kmFlown > 0;
+  $('#homeSel').classList.toggle('hidden', started);
+  $('#hereText').textContent = started ? `You are at ${state.here.spot}, ${state.here.country}` : 'Starting from';
+}
+function refreshGrid() {
+  const grid = $('#grid'); grid.innerHTML = '';
+  [...WONDERS].sort((a, b) => distanceKm(state.here, a) - distanceKm(state.here, b)).forEach(w => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'card'; b.dataset.id = w.id;
+    if (state.visited.has(w.id)) b.classList.add('visited');
+    if (state.here.wonderId === w.id) b.classList.add('here-now');
+    b.innerHTML = '<div class="emo" aria-hidden="true"></div><div class="nm"></div><div class="where"></div><div class="km"></div>';
+    b.querySelector('.emo').textContent = w.emo; b.querySelector('.nm').textContent = w.name;
+    b.querySelector('.where').textContent = `${w.flag} ${w.city}, ${w.country}`;
+    b.querySelector('.km').textContent = state.here.wonderId === w.id ? 'You are here' : `${fmtKm(distanceKm(state.here, w))} km away`;
+    b.addEventListener('click', () => flyTo(w)); grid.appendChild(b);
+  });
+  filterGrid($('#search').value); refreshHere();
+}
+function filterGrid(text) {
+  const t = norm(text || ''), m = t ? matchWonder(text) : null;
+  document.querySelectorAll('#grid .card').forEach(c => {
+    const w = byId[c.dataset.id];
+    const show = !t || w.aliases.some(a => a.includes(t) || t.includes(a)) || norm(w.name).includes(t) || (m && m.id === w.id);
+    c.classList.toggle('hidden', !show);
+  });
+}
+function buildStamps() {
+  const box = $('#stamps'); box.innerHTML = '';
+  WONDERS.forEach(w => { const s = document.createElement('div'); s.className = 'stamp' + (state.visited.has(w.id) ? ' got' : ''); s.id = 'st-' + w.id; s.title = w.name; s.textContent = w.emo; box.appendChild(s); });
+  $('#pStats').textContent = `${state.visited.size} of ${WONDERS.length} stamps, ${fmtKm(state.kmFlown)} km flown`;
+}
+function setMode(m) {
+  state.mode = m;
+  $('#picker').classList.toggle('hidden', m !== 'pick');
+  $('#ticket').classList.toggle('hidden', m !== 'flying');
+  $('#explore').classList.toggle('hidden', m !== 'explore');
+  $('#homeBtn').disabled = m === 'flying' || m === 'intro';
+}
+
+// =====================================================================
+// Globe setup
+// =====================================================================
+function pinImage(emo, color, visited) {
+  const c = document.createElement('canvas'); c.width = 96; c.height = 120; const g = c.getContext('2d');
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(48, 112, 16, 6, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = color; g.beginPath(); g.moveTo(48, 112); g.bezierCurveTo(20, 76, 6, 60, 6, 44); g.arc(48, 44, 42, Math.PI, 0); g.bezierCurveTo(90, 60, 76, 76, 48, 112); g.fill();
+  g.strokeStyle = '#fff'; g.lineWidth = 5; g.stroke();
+  g.fillStyle = '#fff'; g.beginPath(); g.arc(48, 44, 30, 0, Math.PI * 2); g.fill();
+  g.font = '36px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(emo, 48, 47);
+  if (visited) { g.fillStyle = '#2E8B57'; g.beginPath(); g.arc(78, 16, 15, 0, Math.PI * 2); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 4; g.beginPath(); g.moveTo(71, 16); g.lineTo(77, 22); g.lineTo(86, 10); g.stroke(); }
+  return c.toDataURL();
+}
+function addPin(id, lon, lat, emo, name, color, visited) {
+  const ent = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(lon, lat),
+    billboard: { image: pinImage(emo, color, visited), width: 48, height: 60, verticalOrigin: Cesium.VerticalOrigin.BOTTOM, heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, scaleByDistance: new Cesium.NearFarScalar(2e5, 1.1, 2e7, 0.7), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, Number.POSITIVE_INFINITY) },
+    label: { text: name, font: '800 17px Nunito, sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.fromCssColorString('#1D2B4F'), outlineWidth: 5, style: Cesium.LabelStyle.FILL_AND_OUTLINE, verticalOrigin: Cesium.VerticalOrigin.TOP, pixelOffset: new Cesium.Cartesian2(0, 6), heightReference: Cesium.HeightReference.CLAMP_TO_GROUND, disableDepthTestDistance: Number.POSITIVE_INFINITY, distanceDisplayCondition: new Cesium.DistanceDisplayCondition(4000, 1.4e7), scaleByDistance: new Cesium.NearFarScalar(2e5, 1, 1.4e7, 0.75) },
+  });
+  ent.wonderId = id; pins[id] = ent; return ent;
+}
+function refreshPin(w) { const p = pins[w.id]; if (p) p.billboard.image = pinImage(w.emo, '#E4572E', state.visited.has(w.id)); }
+function moveHomePin() { if (!viewer) return; if (pins.home) viewer.entities.remove(pins.home); addPin('home', state.home.lon, state.home.lat, '🏠', state.home.name, '#1D2B4F', false); }
+
+async function setupGlobe(token) {
+  Cesium.Ion.defaultAccessToken = token;
+  viewer = new Cesium.Viewer('globe', {
+    baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false,
+    timeline: false, animation: false, fullscreenButton: false, infoBox: false, selectionIndicator: false,
+    requestRenderMode: false, msaaSamples: 4,
+  });
+  const scene = viewer.scene;
+  viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+  scene.skyAtmosphere.show = true;
+  scene.fog.enabled = true; scene.fog.density = 1.2e-4;
+  scene.postProcessStages.fxaa.enabled = true;
+  scene.globe.depthTestAgainstTerrain = true;
+  scene.screenSpaceCameraController.minimumZoomDistance = 40;
+  viewer.clock.shouldAnimate = false;
+
+  // Real, photorealistic 3D Earth (Google 3D Tiles through Cesium ion). If the token doesn't have it,
+  // fall back to satellite imagery + terrain + 3D buildings, with city lights on the night side.
+  try {
+    tiles = await Cesium.Cesium3DTileset.fromIonAssetId(2275207, { showCreditsOnScreen: true, maximumScreenSpaceError: 16, skipLevelOfDetail: true, preloadFlightDestinations: true });
+    scene.primitives.add(tiles); scene.globe.show = false; usingPhoto = true;
+  } catch (e) {
+    console.warn('Photorealistic 3D Tiles are not on this token. Using terrain + buildings instead.', e);
+    try { scene.setTerrain(Cesium.Terrain.fromWorldTerrain()); } catch (_) {}
+    try {
+      const night = viewer.imageryLayers.addImageryProvider(await Cesium.IonImageryProvider.fromAssetId(3812));
+      night.dayAlpha = 0; night.nightAlpha = 1; night.brightness = 2; scene.globe.enableLighting = true;
+    } catch (_) {}
+    try { tiles = await Cesium.createOsmBuildingsAsync(); scene.primitives.add(tiles); } catch (_) {}
+  }
+
+  WONDERS.forEach(w => addPin(w.id, w.lon, w.lat, w.emo, w.name, '#E4572E', false));
+  moveHomePin();
+
+  const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+  handler.setInputAction(click => {
+    if (state.mode === 'flying' || state.mode === 'intro') return;
+    const picked = scene.pick(click.position), id = picked && picked.id && picked.id.wonderId;
+    if (id && byId[id] && state.here.wonderId !== id) flyTo(byId[id]);
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+  const stopSpin = () => { if (spinning) { spinning = false; markView(null); } };
+  scene.canvas.addEventListener('pointerdown', stopSpin);
+  scene.canvas.addEventListener('wheel', stopSpin, { passive: true });
+  scene.preRender.addEventListener(onFrame);
+
+  // start far out in space, slowly turning
+  viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(state.home.lon - 60, state.home.lat - 10, 2.6e7) });
+  idleSpin = true;
+}
+
+// =====================================================================
+// Camera helpers
+// =====================================================================
+let spinning = false, spinCenter = null, spinView = null, idleSpin = false, lastT = performance.now();
+function releaseCamera() { viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY); }
+function centerOf(place) { return Cesium.Cartesian3.fromDegrees(place.lon, place.lat, place.view.h); }
+function hpr(v, scale = 1, dp = 0) { return new Cesium.HeadingPitchRange(Cesium.Math.toRadians(v.heading), Cesium.Math.toRadians(v.pitch + dp), v.range * scale); }
+function lookAround(center, off, duration, done) {
+  releaseCamera();
+  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(center, 1), {
+    offset: off, duration: reduceMotion ? 0 : duration,
+    complete: () => { viewer.camera.lookAt(center, off); spinCenter = center; spinView = { heading: off.heading, pitch: off.pitch, range: off.range }; done && done(); },
+  });
+}
+// swoop from wherever we are down to a place and start circling it
+function arriveAt(place, duration = 4, done) {
+  spinning = false;
+  lookAround(centerOf(place), hpr(place.view), duration, () => { spinning = !reduceMotion; markView(spinning ? 'spin' : null); done && done(); });
+}
+function markView(v) { document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v)); }
+
+// =====================================================================
+// Flight
+// =====================================================================
+let flight = null, clouds = null;
+const journeyLines = [];
+
+function flyTo(w) {
+  if (state.mode === 'flying' || !viewer) return;
+  if (state.here.wonderId === w.id) { banner('You are already here!', w.name); return; }
+  if (rec) rec.stop();
+  startFlight(state.here, placeFromWonder(w), w);
+}
+function flyHome() {
+  if (state.mode === 'flying' || state.mode === 'intro' || !viewer) return;
+  if (state.here.kind === 'home') { arriveAt(state.here, 3); setMode('pick'); return; }
+  startFlight(state.here, placeFromHome(state.home), null);
+}
+
+function addClouds(place, around) {
+  if (!clouds) { clouds = new Cesium.CloudCollection({ noiseDetail: 16 }); viewer.scene.primitives.add(clouds); }
+  const base = place.view.h;
+  for (let i = 0; i < 38; i++) {
+    const ang = Math.random() * Math.PI * 2, dist = around[0] + Math.random() * (around[1] - around[0]);
+    const lat = place.lat + (dist * Math.cos(ang)) / 111000, lon = place.lon + (dist * Math.sin(ang)) / (111000 * Math.cos(toRad(place.lat)));
+    const w = 900 + Math.random() * 1600, h = w * (0.45 + Math.random() * 0.25);
+    clouds.add({ position: Cesium.Cartesian3.fromDegrees(lon, lat, base + 1800 + Math.random() * 1800), scale: new Cesium.Cartesian2(w, h), maximumSize: new Cesium.Cartesian3(50, 18, 30), slice: 0.3 + Math.random() * 0.2, brightness: 1 });
+  }
+}
+
+function startFlight(from, to, wonder) {
+  spinning = false; idleSpin = false; releaseCamera();
+  if (synth) synth.cancel();
+  setMode('flying'); Sound.init(); Sound.chime();
+  if (clouds) clouds.removeAll();
+  addClouds(from, [1500, 9000]); addClouds(to, [1500, 12000]);
+
+  const c0 = Cesium.Cartographic.fromDegrees(from.lon, from.lat), c1 = Cesium.Cartographic.fromDegrees(to.lon, to.lat);
+  const geo = new Cesium.EllipsoidGeodesic(c0, c1), distM = geo.surfaceDistance, km = distM / 1000;
+  const cruise = Math.min(Math.max(distM * 0.14, 14000), 1400000);
+  const dur = reduceMotion ? 5 : Math.min(Math.max(10 + km / 900, 11), 22);
+  const startAlt = from.view.h + 250, endAlt = to.view.h + Math.max(700, to.view.range * 1.4);
+
+  const start = Cesium.JulianDate.now(), stop = Cesium.JulianDate.addSeconds(start, dur, new Cesium.JulianDate());
+  const pos = new Cesium.SampledPositionProperty();
+  pos.setInterpolationOptions({ interpolationDegree: 3, interpolationAlgorithm: Cesium.LagrangePolynomialApproximation });
+  const N = 200, arc = [], scratch = new Cesium.Cartographic();
+  for (let i = 0; i <= N; i++) {
+    const f = i / N, c = geo.interpolateUsingFraction(f, scratch);
+    // climb fast, cruise, then a long gentle descent
+    const climb = smooth(clamp01(f / 0.3)), descend = smooth(clamp01((1 - f) / 0.4));
+    const alt = startAlt + (endAlt - startAlt) * smooth(f) + cruise * Math.min(climb, descend);
+    const p = Cesium.Cartesian3.fromRadians(c.longitude, c.latitude, alt);
+    arc.push(p); pos.addSample(Cesium.JulianDate.addSeconds(start, dur * timeOf(f), new Cesium.JulianDate()), p);
+  }
+
+  const route = viewer.entities.add({ polyline: { positions: arc, width: 3, arcType: Cesium.ArcType.NONE, material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.WHITE.withAlpha(0.8), dashLength: 22 }) } });
+  const plane = viewer.entities.add({
+    position: pos, orientation: new Cesium.VelocityOrientationProperty(pos),
+    model: { uri: 'https://raw.githubusercontent.com/CesiumGS/cesium/main/Apps/SampleData/models/CesiumAir/Cesium_Air.glb', scale: 4, minimumPixelSize: 110, maximumScale: 40000, runAnimations: true },
+    path: { leadTime: 0, trailTime: dur + 2, width: 10, resolution: 0.15, material: new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.22, color: Cesium.Color.fromCssColorString('#FFE3A0') }) },
+  });
+  viewer.clock.shouldAnimate = false; viewer.clock.currentTime = start.clone();
+  if (tiles) tiles.maximumScreenSpaceError = 24;
+
+  flight = { from, to, wonder, geo, km, cruise, dur, start, stop, pos, route, plane, arc, phase: 'boarding', said: {} };
+  $('#tFrom').textContent = from.kind === 'home' ? from.name : from.spot; $('#tTo').textContent = wonder ? wonder.name : to.name;
+  $('#tArrow').style.setProperty('--p', '0%'); $('#tKm').textContent = `0 of ${fmtKm(km)} km`; $('#tAlt').textContent = '';
+  const hrs = km / 850 + 0.5; $('#tSpeed').textContent = `Real flight: about ${hrs < 1 ? Math.round(hrs * 60) + ' min' : Math.floor(hrs) + ' h ' + Math.round((hrs % 1) * 60) + ' min'}`;
+  captain(`Fasten your seat belts! Next stop: ${wonder ? wonder.name : 'home, ' + to.name}.`);
+  say(`Fasten your seat belts! We're flying ${fmtKm(km)} kilometres to ${wonder ? 'the ' + wonder.name : to.name}.`);
+
+  // swing the camera in behind the plane on the runway, then go
+  const b0 = bearing(c0, geo.interpolateUsingFraction(0.01, new Cesium.Cartographic()));
+  viewer.camera.flyToBoundingSphere(new Cesium.BoundingSphere(pos.getValue(start), 1), {
+    offset: new Cesium.HeadingPitchRange(b0 + 0.6, -0.25, chaseRange(startAlt, 0)), duration: reduceMotion ? 0 : 2.2,
+    complete: () => {
+      viewer.clock.startTime = start.clone(); viewer.clock.stopTime = stop.clone(); viewer.clock.currentTime = start.clone();
+      viewer.clock.clockRange = Cesium.ClockRange.CLAMPED; viewer.clock.multiplier = 1; viewer.clock.shouldAnimate = true;
+      flight.phase = 'air'; flight.t0 = performance.now(); Sound.engineStart();
+    },
+  });
+}
+// the plane moves slowly near the ground and fast at cruise height
+function timeOf(f) { const a = 0.18; return f < a ? 0.28 * (f / a) ** 1.6 : f > 1 - a ? 1 - 0.28 * ((1 - f) / a) ** 1.6 : 0.28 + 0.44 * ((f - a) / (1 - 2 * a)); }
+function chaseRange(alt, mid) { return Math.max(160, (alt - 0) * (2.2 + 2.2 * mid)); }
+function captain(t) { $('#captain').textContent = t ? '👩‍✈️ ' + t : ''; }
+
+function onFrame() {
+  const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (idleSpin && !spinning) { viewer.scene.camera.rotate(Cesium.Cartesian3.UNIT_Z, -dt * 0.05); }
+  if (flight && flight.phase === 'air') {
+    const t = viewer.clock.currentTime, f = clamp01(Cesium.JulianDate.secondsDifference(t, flight.start) / flight.dur);
+    const p = flight.pos.getValue(t);
+    if (p) {
+      const ahead = flight.pos.getValue(Cesium.JulianDate.addSeconds(t, 0.25, new Cesium.JulianDate())) || p;
+      const cp = Cesium.Cartographic.fromCartesian(p), ca = Cesium.Cartographic.fromCartesian(ahead);
+      const hd = Cesium.Cartesian3.distance(p, ahead) > 1 ? bearing(cp, ca) : (flight.lastHd || 0); flight.lastHd = hd;
+      // cinematic camera: side-on at take-off, rising high overhead mid-flight to show the whole route, behind for landing
+      const mid = Math.sin(Math.PI * f) ** 2, side = 0.6 * (1 - smooth(clamp01(f / 0.15))) + 0.35 * Math.sin((now - flight.t0) / 2600) * mid;
+      const pitch = -0.25 - 0.75 * mid;
+      const aboveGround = Math.max(80, cp.height - flight.from.view.h * (1 - f) - flight.to.view.h * f);
+      viewer.camera.lookAt(p, new Cesium.HeadingPitchRange(hd + side, pitch, chaseRange(aboveGround, mid)));
+      const gf = clamp01(distanceKm(flight.from, { lat: Cesium.Math.toDegrees(cp.latitude), lon: Cesium.Math.toDegrees(cp.longitude) }) / Math.max(1, flight.km));
+      $('#tArrow').style.setProperty('--p', (gf * 100).toFixed(1) + '%');
+      $('#tKm').textContent = `${fmtKm(flight.km * gf)} of ${fmtKm(flight.km)} km`;
+      $('#tAlt').textContent = `⬆ ${aboveGround > 20000 ? fmtKm(aboveGround / 1000) + ' km' : fmtKm(aboveGround) + ' m'} high`;
+      Sound.engineLevel(f < 0.3 ? 1 : f > 0.8 ? 0.35 : 0.6);
+      if (f > 0.12 && !flight.said.climb) { flight.said.climb = 1; captain(`We're climbing above ${flight.from.name}. Look how small the city gets!`); }
+      if (f > 0.42 && !flight.said.space) { flight.said.space = 1; captain('See the curved line? That\u2019s the shortest way around a round Earth.'); say('See the curved line? That is the shortest way around a round Earth.'); }
+      if (f > 0.78 && !flight.said.down) { flight.said.down = 1; captain('Starting our descent. Watch out for the clouds!'); if (tiles) tiles.maximumScreenSpaceError = 12; }
+    }
+    if (f >= 1) arrive();
+  }
+  if (spinning && spinCenter && state.mode !== 'flying') {
+    spinView.heading += dt * 0.1;
+    viewer.camera.lookAt(spinCenter, new Cesium.HeadingPitchRange(spinView.heading, spinView.pitch, spinView.range));
+  }
+}
+
+function arrive() {
+  const fl = flight; flight = null; viewer.clock.shouldAnimate = false;
+  Sound.engineStop();
+  viewer.entities.remove(fl.route);
+  setTimeout(() => viewer.entities.remove(fl.plane), 1500);
+  journeyLines.push(viewer.entities.add({ polyline: { positions: fl.arc, width: 2, arcType: Cesium.ArcType.NONE, material: Cesium.Color.fromCssColorString('#F2B33D').withAlpha(0.6) } }));
+  state.kmFlown += fl.km; state.here = fl.to;
+  if (tiles) tiles.maximumScreenSpaceError = usingPhoto ? 8 : 16;
+
+  if (!fl.wonder) {
+    Sound.chime(); banner(`Welcome home to ${fl.to.name}!`, `${fmtKm(fl.km)} km flown`); say(`Welcome home to ${fl.to.name}!`);
+    buildStamps(); refreshGrid(); setMode('pick');
+    arriveAt(fl.to, 4); return;
+  }
+  const w = fl.wonder, first = !state.visited.has(w.id);
+  state.visited.add(w.id); refreshPin(w); buildStamps();
+  if (first) { const s = $('#st-' + w.id); if (s) { s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); } }
+  Sound.fanfare(); banner(`Welcome to ${w.city}!`, `${w.flag} ${w.country}`);
+  say(`We have landed! Welcome to the ${w.name}, in ${w.country}.`);
+  arriveAt(fl.to, 4.5, () => startExplore(w));
+}
+
+// =====================================================================
+// Explore
+// =====================================================================
+let factIdx = 0, current = null;
+function startExplore(w) {
+  current = w; factIdx = 0;
+  $('#eEmo').textContent = w.emo; $('#eName').textContent = w.name; $('#eWhere').textContent = `${w.flag} ${w.city}, ${w.country}`;
+  $('#factBox').classList.remove('hidden');
+  showFact(); buildQuiz(w); refreshGrid(); setMode('explore');
+  setTimeout(() => say(w.facts[0]), 1200);
+}
+function showFact() { const w = current; $('#eFact').textContent = w.facts[factIdx]; $('#eFactN').textContent = `Fact ${factIdx + 1} of ${w.facts.length}`; $('#nextFact').textContent = factIdx < w.facts.length - 1 ? 'Next fact' : 'First fact'; }
+function buildQuiz(w) {
+  const done = state.quizDone.has(w.id);
+  $('#qText').textContent = `Quick quiz: ${w.quiz.q}`; $('#qMsg').textContent = done ? 'You already got this one right! ⭐' : '';
+  const box = $('#qOpts'); box.innerHTML = '';
+  w.quiz.opts.map((o, i) => i).sort(() => Math.random() - 0.5).forEach(i => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = w.quiz.opts[i];
+    if (done && i === w.quiz.a) b.classList.add('right');
+    b.addEventListener('click', () => {
+      if (state.quizDone.has(w.id)) return;
+      if (i === w.quiz.a) { b.classList.add('right'); state.quizDone.add(w.id); $('#qMsg').textContent = 'Correct! ⭐ Great exploring!'; Sound.fanfare(); say('Correct! Great exploring!'); }
+      else { b.classList.add('wrong'); b.disabled = true; $('#qMsg').textContent = 'Not quite. Try another answer!'; say('Not quite. Try again!'); }
+    });
+    box.appendChild(b);
+  });
+}
+function setView(kind) {
+  const place = state.here; if (!place || state.mode === 'flying') return;
+  const c = centerOf(place), v = place.view;
+  if (kind === 'spin') { arriveAt(place, 1.8); return; }
+  spinning = false;
+  const off = kind === 'above' ? hpr(v, 1.9, -45) : new Cesium.HeadingPitchRange(Cesium.Math.toRadians(v.heading + 25), Cesium.Math.toRadians(Math.min(-4, v.pitch + 12)), v.range * 0.42);
+  lookAround(c, off, 2.2, () => markView(kind));
+}
+
+// =====================================================================
+// Wiring
+// =====================================================================
+$('#nextFact').addEventListener('click', () => { factIdx = (factIdx + 1) % current.facts.length; showFact(); say(current.facts[factIdx]); });
+$('#readBtn').addEventListener('click', () => say(current.facts[factIdx], true));
+$('#goNext').addEventListener('click', () => { setMode('pick'); $('#search').value = ''; refreshGrid(); $('#search').focus(); say('Where shall we go next?'); });
+$('#toSpace').addEventListener('click', () => { spinning = false; releaseCamera(); viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(state.here.lon, state.here.lat - 15, 1.6e7), duration: reduceMotion ? 0 : 3.5 }); setMode('pick'); });
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+$('#homeBtn').addEventListener('click', flyHome);
+$('#soundBtn').addEventListener('click', () => { state.sound = !state.sound; $('#soundBtn').setAttribute('aria-pressed', state.sound); Sound.setOn(state.sound); if (!state.sound && synth) synth.cancel(); });
+$('#mic').addEventListener('click', listen);
+$('#search').addEventListener('input', e => filterGrid(e.target.value));
+$('#search').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const w = matchWonder(e.target.value);
+  if (w) flyTo(w); else $('#hint').textContent = 'Hmm, I don\u2019t know that place yet. Try one of the wonders below!';
+});
+
+function getToken() {
+  return window.CESIUM_ION_TOKEN || window.CESIUM_TOKEN || (window.ENV && (window.ENV.CESIUM_ION_TOKEN || window.ENV.CESIUM_TOKEN)) || (() => { try { return localStorage.getItem('cesiumIonToken'); } catch (e) { return null; } })() || '';
+}
+let ready = false;
+async function boot(token) {
+  $('#status').textContent = 'Loading the Earth…';
+  try { await setupGlobe(token); ready = true; $('#status').textContent = usingPhoto ? 'Ready! Photorealistic 3D Earth loaded.' : 'Ready!'; }
+  catch (e) { console.error(e); $('#startScreen').classList.add('hidden'); $('#setup').classList.remove('hidden'); $('#tokenErr').textContent = 'The Earth could not load. Check the token and your internet.'; }
+}
+$('#startBtn').addEventListener('click', () => {
+  if (!ready) { $('#status').textContent = 'Still loading, one moment…'; return; }
+  Sound.init(); Sound.chime(); $('#startScreen').classList.add('hidden');
+  idleSpin = false; state.mode = 'arriving';
+  say(`Welcome, explorer! Let's zoom in to your starting point, ${state.home.spot} in ${state.home.name}.`);
+  releaseCamera();
+  viewer.camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(state.home.lon, state.home.lat - 8, 5e6), duration: reduceMotion ? 0 : 3,
+    complete: () => arriveAt(state.here, 4.5, () => { banner(`You are in ${state.home.name}!`, state.home.spot); setMode('pick'); refreshGrid(); say('Where do you want to go?'); }) });
+});
+$('#tokenGo').addEventListener('click', () => {
+  const t = $('#tokenIn').value.trim(); if (t.length < 20) { $('#tokenErr').textContent = 'That doesn\u2019t look like a full token.'; return; }
+  try { localStorage.setItem('cesiumIonToken', t); } catch (e) {}
+  location.reload();
+});
+
+buildHomeSelect(); buildStamps(); refreshGrid(); setMode('intro');
+if (typeof Cesium === 'undefined') { $('#status').textContent = 'Could not load Cesium. Check your internet connection.'; }
+else {
+  const token = getToken();
+  if (!token || token === 'YOUR_CESIUM_ION_TOKEN') { $('#startScreen').classList.add('hidden'); $('#setup').classList.remove('hidden'); }
+  else boot(token);
+}
+})();
+</script>
+</body>
+</html>
