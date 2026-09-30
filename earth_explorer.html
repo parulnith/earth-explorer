@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Earth Explorer</title>
+<title>Where to Next?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
@@ -211,7 +211,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <div id="globe"></div>
 
 <div class="topbar">
-  <div class="chip glass brand"><span class="logo" aria-hidden="true">✈️</span><h1>Earth Explorer</h1></div>
+  <div class="chip glass brand"><span class="logo" aria-hidden="true">✈️</span><h1>Where to Next?</h1></div>
   <div class="chip glass here" id="here"><span id="hereIco" aria-hidden="true">📍</span> <span id="hereText">Starting from</span>
     <select id="homeSel" aria-label="Choose your starting city"></select>
   </div>
@@ -222,7 +222,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 
 <section class="panel glass picker hidden" id="picker" aria-label="Choose a destination">
   <header class="phead">
-    <h2>Where to next?</h2>
+    <h2>Pick a wonder</h2>
     <button class="minbtn" type="button" data-min="picker" aria-expanded="true" aria-label="Hide or show the list">–</button>
   </header>
   <div class="pbody">
@@ -301,7 +301,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 <div class="overlay hidden" id="setup">
   <div class="setup glass">
     <h2>One quick setup step</h2>
-    <p>Earth Explorer needs a free Cesium ion token from <a href="https://ion.cesium.com/" target="_blank" rel="noopener">ion.cesium.com</a> (Access Tokens). Put it in <b>env.js</b>, or paste it here:</p>
+    <p>Where to Next? needs a free Cesium ion token from <a href="https://ion.cesium.com/" target="_blank" rel="noopener">ion.cesium.com</a> (Access Tokens). Put it in <b>env.js</b>, or paste it here:</p>
     <input id="tokenIn" type="text" placeholder="Paste your Cesium ion token" autocomplete="off">
     <div class="err" id="tokenErr"></div>
     <button class="pill primary" id="tokenGo" type="button">Save and start</button>

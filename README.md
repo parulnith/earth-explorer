@@ -1,9 +1,9 @@
-# Earth Explorer ✈️
+# Where to Next? ✈️
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Twitter Follow](https://img.shields.io/twitter/follow/pandeyparul?style=social)](https://twitter.com/pandeyparul)
 
-**Earth Explorer** is a 3D globe adventure for kids. Start from home in India, choose a wonder of the world, and fly there. A plane follows a real curved flight path across the globe, lands, and then you can explore the place in photorealistic 3D.
+**Where to Next?** is a 3D globe adventure for kids. Start from home in India, choose a wonder of the world, and fly there. A plane follows a real curved flight path across the globe, lands, and then you can explore the place in photorealistic 3D.
 
 ---
 
